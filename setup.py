@@ -14,7 +14,7 @@ config = {
     "install_requires": [
         "click==7.1.2",
         "gitpython==3.1.11",
-        "google-cloud-storage-1.33.0",
+        "google-cloud-storage==1.33.0",
         "pybase62==0.4.3",
         "srsly==2.3.2",
     ],

@@ -11,6 +11,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 
   ```
   mkdir coco-agent
+  cd coco-agent
   python3 -m venv venv
   source venv/bin/activate
   ```
