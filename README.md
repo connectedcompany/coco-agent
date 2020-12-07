@@ -11,14 +11,14 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 
   ```
   mkdir coco-agent
-  python3 -mvenv venv
+  python3 -m venv venv
   source venv/bin/activate
   ```
 
 - Install the latest version of the tool the virtual environment:
 
   ```
-  pip install -U "git+https://team-machine.github.io/coco-agent.git"
+  pip install -U "git+https://github.com/team-machine/coco-agent.git"
   ```
 
 ## Extract Git data
