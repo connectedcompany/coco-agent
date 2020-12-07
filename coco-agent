@@ -1,0 +1,5 @@
+#!/bin/sh
+set -euo pipefail
+
+python3 -m coco_agent.remote.cli "$@"
+
