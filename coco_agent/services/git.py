@@ -138,7 +138,7 @@ class GitRepoExtractor:
 
     def generate_repo_id_from_remote_name(self, repo):
         repo_name = get_repo_name_from_remote(repo)
-        log.info(f"Using {repo_name} for repo id from remote origin as repo id")
+        log.info(f"Using {repo_name} from remote origin as repo id")
 
         return tm_id.git_repo(self.customer_id, self.source_id, repo_name)
 
