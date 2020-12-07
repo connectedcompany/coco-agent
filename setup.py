@@ -19,7 +19,7 @@ config = {
         "srsly==2.3.2",
     ],
     "packages": ["coco_agent"],
-    "scripts": [],
+    "scripts": ["coco-agent"],
     "name": "coco-agent",
 }
 
