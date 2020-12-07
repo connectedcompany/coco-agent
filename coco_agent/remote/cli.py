@@ -41,7 +41,7 @@ def cli() -> str:
 
 @cli.group("extract")
 def extract() -> str:
-    """ extract stuff """
+    """ Data extraction commands """
     pass
 
 
@@ -81,14 +81,14 @@ def extract_git(
 
 @cli.group("upload")
 def upload() -> str:
-    """ Upload content (data, logs) """
+    """ Content uploading (data, logs, etc) """
     pass
 
 
 @upload.command("logs")
 def upload_logs_dir() -> str:
     """ Upload content of a logs directory """
-    pass
+    raise NotImplementedError
 
 
 @upload.command("data")
