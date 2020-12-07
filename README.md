@@ -27,7 +27,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 To extract metadata from a cloned repo accessible via the file system:
 
 ```
-./coco-agent extract git-repo  --customer-id=<customer id> --source-id=<source id> repo-dir
+coco-agent extract git-repo  --customer-id=<customer id> --source-id=<source id> repo-dir
 ```
 
 where
@@ -45,7 +45,7 @@ For additional options, see `./coco-agent extract git-repo --help`
 Once desired data has been extracted, it can be securely uploaded to CC from the output directory:
 
 ```
-./coco-agent upload data --customer-id=<customer id> --credentials-file=<credentials file path> out
+coco-agent upload data --customer-id=<customer id> --credentials-file=<credentials file path> out
 ```
 
 where
@@ -58,6 +58,6 @@ where
 
 ## Supported options
 
-Running `./coco-agent` will display supported commands and options.
+Running `coco-agent` will display supported commands and options.
 
 In the same way, description and options for each sub-command can be seen by passing the `--help` argument - e.g. `./coco-agent extract git-repo --help`.

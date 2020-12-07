@@ -1,8 +1,4 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-
+from setuptools import find_packages, setup
 
 config = {
     "description": "coco-agent",
@@ -18,7 +14,8 @@ config = {
         "pybase62==0.4.3",
         "srsly==2.3.2",
     ],
-    "packages": ["coco_agent"],
+    "python_requires": ">=3.6",
+    "packages": find_packages(where="coco_agent"),
     "scripts": ["coco-agent"],
     "name": "coco-agent",
 }
