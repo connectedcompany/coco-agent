@@ -15,7 +15,7 @@ config = {
         "srsly==2.3.2",
     ],
     "python_requires": ">=3.6",
-    "packages": find_packages(where="coco_agent"),
+    "packages": ["coco_agent"],
     "scripts": ["coco-agent"],
     "name": "coco-agent",
 }
