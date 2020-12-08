@@ -3,7 +3,8 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 ## Pre-requisites
 
 - python 3.6+ (`python3 --version` to check)
-- CC account details: customer ID, source ID, data upload key
+- CC customer ID
+- optionally, a data upload key
 
 ## Environment setup
 
@@ -27,13 +28,12 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 To extract metadata from a cloned repo accessible via the file system:
 
 ```
-coco-agent extract git-repo  --customer-id=<customer id> --source-id=<source id> repo-dir
+coco-agent extract git-repo  --customer-id=<customer id> repo-dir
 ```
 
 where
 
 - `customer id` is an account ID provided by CC
-- `source id` is an identifier for a set of repos, also provided by CC
 - `repo-dir` is the directory of the Git repository
 
 By default, output is written to the `out` directory.
