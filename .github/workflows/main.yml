@@ -15,6 +15,13 @@ jobs:
         with:
           python-version: 3.6
 
+      - name: debug git diff
+        run: |
+          git --version
+          pwd
+          ls -l
+          git diff-tree 06658847db56edc46b4b7d60b799313503468d32 0c94dea141ba2d472ad7d19abf201059cb476f1e -r --abbrev=40 --full-index -M --raw --no-color
+
       - name: Unit tests
         run: |
           python -mvenv venv
