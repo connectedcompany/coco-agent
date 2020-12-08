@@ -28,7 +28,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 To extract metadata from a cloned repo accessible via the file system:
 
 ```
-coco-agent extract git-repo  --customer-id=<customer id> repo-dir
+coco-agent extract git-repo --customer-id=<customer id> repo-dir
 ```
 
 where
