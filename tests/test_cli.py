@@ -43,7 +43,6 @@ def test_upload(mock_gcs):
                 "extract",
                 "git-repo",
                 "--customer-id=test",
-                "--source-id=test",
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
                 ".",

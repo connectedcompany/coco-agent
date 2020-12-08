@@ -61,11 +61,11 @@ def test_commit_iter_fall_back_from_master_to_main():
 def test_git_repo_extractor_validation(mock_name_getter):
     mock_name_getter.return_value = None
 
-    # with pytest.raises(ValueError, match="provide a sensor"):
-    #     git.GitRepoExtractor(".")
+    with pytest.raises(ValueError, match="provide a sensor"):
+        git.GitRepoExtractor(".")
 
-    # with pytest.raises(ValueError, match="No repo id"):
-    #     git.GitRepoExtractor(".", customer_id="cust-id", source_id="source-id")
+    with pytest.raises(ValueError, match="No repo id"):
+        git.GitRepoExtractor(".", customer_id="cust-id", source_id="source-id")
 
     with pytest.raises(ValueError, match="repo name from remote"):
         next(
@@ -107,6 +107,7 @@ def test_repo_extractor():
     assert len(repos) == 1
     assert repos[0]["tm_id"] == REPO_TM_ID
     assert repos[0]["name"] == "test-repo"
+    assert repos[0]["sensor_id"] == "sen-3qSmBRpzjqOW07"
 
     assert len(commits) > 0
     assert commits[0]["authored_date"] < commits[1]["authored_date"]

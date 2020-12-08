@@ -47,7 +47,11 @@ def extract() -> str:
 
 @extract.command("git-repo")
 @click.option("--customer-id", required=True, help="Customer identifier")
-@click.option("--source-id", required=True, help="Repo source identifier")
+@click.option(
+    "--source-id",
+    required=False,
+    help="Repo source ID - derived from customer ID if not set",
+)
 @click.option("--output-dir", default="./out", help="Output director")
 @click.option("--branch", default="master", help="Branch / rev spec")
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
@@ -65,6 +69,9 @@ def extract_git(
     REPO_PATH is the file system path to repo to extract.
     """
     apply_log_level(log_level)
+
+    if not source_id:
+        source_id = f"{customer_id}-git"
 
     ingest_repo_to_jsonl(
         customer_id=customer_id,
