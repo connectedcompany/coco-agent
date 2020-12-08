@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from datetime import datetime
 
 from coco_agent.services import tm_id
 from coco_agent.services.gcs import GCSClient
@@ -15,7 +16,12 @@ def _bucket_name_from_customer_id(customer_id):
 
 
 def upload_dir_to_gcs(
-    credentials_file_path, dir_, customer_id=None, bucket_name=None, bucket_subpath=None
+    credentials_file_path,
+    dir_,
+    customer_id=None,
+    bucket_name=None,
+    bucket_subpath=None,
+    include_timestamp=True,
 ):
     if not bucket_name and not customer_id:
         raise ValueError(f"Specify bucket name explicitly, or provide a customer id")
@@ -29,7 +35,12 @@ def upload_dir_to_gcs(
     files = [f for f in os.listdir(dir_) if os.path.isfile(os.path.join(dir_, f))]
     for file_ in files:
         local_file_path = os.path.join(dir_, file_)
-        bucket_file_name = bucket_subpath + file_
+        bucket_file_name = file_
+        if include_timestamp:
+            bucket_file_name = (
+                f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_" + bucket_file_name
+            )
+        bucket_file_name = bucket_subpath + bucket_file_name
 
         log.debug(f"Uploading {local_file_path} to {bucket_name} as {bucket_file_name}")
         gcs.write_file(

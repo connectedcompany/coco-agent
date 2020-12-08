@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
 from click.testing import CliRunner
@@ -55,6 +56,7 @@ def test_upload(mock_gcs):
         mock_gcs_inst = MagicMock()
         mock_gcs.side_effect = lambda _: mock_gcs_inst
 
+        ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         result = runner.invoke(
             cli,
             [
@@ -75,7 +77,7 @@ def test_upload(mock_gcs):
                 call(
                     os.path.join(tmpdir, f),
                     "cc-upload-3lvbl6fqqanq2r",
-                    bucket_file_name="data/" + f,
+                    bucket_file_name=f"data/{ts}_{f}",
                     skip_bucket_check=True,
                 )
                 for f in os.listdir(tmpdir)
