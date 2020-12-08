@@ -44,7 +44,7 @@ For additional options, see `./coco-agent extract git-repo --help`
 
 Simply re-run the `coco-agent extract git-repo` command from the same location, pointing at each additional repo directory as desired.
 
-This will result in export data files building up in a single location, for easy subsequent transfer.
+This will result in exported data files building up in a single location (`out` subdirectory by default), for easy subsequent transfer.
 
 ## Upload data
 
