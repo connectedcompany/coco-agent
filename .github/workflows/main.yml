@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Unit tests
+        run: |
+          python -mvenv venv
+          source venv/bin/activate
+          pip install -r dev_requirements.txt
+          pip install -r requirements.txt
+          source pytest tests/
+
+      - name: Snyk package deps scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
