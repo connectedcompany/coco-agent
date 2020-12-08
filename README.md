@@ -23,7 +23,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
   pip install -U "git+https://github.com/team-machine/coco-agent.git"
   ```
 
-## Extract Git data
+## Extract metadata from a Git repository
 
 To extract metadata from a cloned repo accessible via the file system:
 
@@ -39,6 +39,12 @@ where
 By default, output is written to the `out` directory.
 
 For additional options, see `./coco-agent extract git-repo --help`
+
+#### Additional repositories
+
+Simply re-run the `coco-agent extract git-repo` command from the same location, pointing at each additional repo directory as desired.
+
+This will result in export data files building up in a single location, for easy subsequent transfer.
 
 ## Upload data
 
