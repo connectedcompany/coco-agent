@@ -8,6 +8,39 @@ import srsly
 from coco_agent.services import git
 
 
+def test_generate_git_export_file_name():
+    with pytest.raises(ValueError, match="parts missing"):
+        git.generate_git_export_file_name(None, None, None, None, "name")
+    with pytest.raises(ValueError, match="parts missing"):
+        git.generate_git_export_file_name("a", "b", None, "d", "e")
+
+    assert (
+        git.generate_git_export_file_name(
+            "jsonl", "cust-id", "source-id", "repo-id", "git_commits"
+        )
+        == "cust-id__source-id__repo-id__git_commits.jsonl"
+    )
+
+
+def test_parse_git_export_file_name():
+    #  exceptions
+    with pytest.raises(ValueError, match="file name structure"):
+        git.parse_git_export_file_name("whatever")
+
+    #  fixed input
+    res = git.parse_git_export_file_name(
+        "cust-id__source-id__repo-id__git_commits.jsonl"
+    )
+    assert res == ("cust-id", "source-id", "repo-id", "git_commits", "jsonl")
+
+    #  round trip
+    assert git.parse_git_export_file_name(
+        git.generate_git_export_file_name(
+            "jsonl", "cust-id", "source-id", "repo-id", "git_commits"
+        )
+    ) == ("cust-id", "source-id", "repo-id", "git_commits", "jsonl")
+
+
 def test_get_repo_name_from_remote():
     repo = MagicMock()
     repo.remotes = []

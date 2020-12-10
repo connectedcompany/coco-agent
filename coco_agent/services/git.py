@@ -11,6 +11,7 @@ import git
 
 from . import tm_id
 
+EXPORT_FILE_NAME_REGEX = re.compile(r"^(.+)__(.+)__(.+)__(.+)\.(.+)$")
 GIT_URL_SCHEMES = ("http", "https", "git")
 GIT_SOURCE_TYPE = "git"
 GIT_COMMIT_TYPE = "git_commits"
@@ -63,6 +64,22 @@ def _diff_type(diff):
 def clone_repo(clone_url, to_path):
     git.Repo.clone_from(clone_url, to_path)
     return git.Repo(to_path)
+
+
+def generate_git_export_file_name(
+    file_suffix, customer_id, source_id, repo_id, entity_name
+):
+    if not all([file_suffix, customer_id, source_id, repo_id, entity_name]):
+        raise ValueError(f"One or more file name parts missing")
+    
+    return f"{customer_id}__{source_id}__{repo_id}__{entity_name}.{file_suffix}"
+
+
+def parse_git_export_file_name(file_name):
+    matches = re.findall(EXPORT_FILE_NAME_REGEX, file_name)
+    if not matches:
+        raise ValueError(f"Unexpected export file name structure: {file_name}")
+    return matches[0]
 
 
 def get_repo_name_from_remote(repo):
@@ -308,7 +325,8 @@ def ingest_repo_to_jsonl(
 
     def jsonl_writer(type_, id_, iter):
         path = os.path.join(
-            output_dir, f"{customer_id}__{source_id}__{id_}__{type_}.jsonl"
+            output_dir,
+            generate_git_export_file_name("jsonl", customer_id, source_id, id_, type_),
         )
         srsly.write_jsonl(path, iter)
 
