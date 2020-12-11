@@ -36,29 +36,41 @@ def _diff_size(diff):
     """
     Computes the size of the diff by comparing the size of the blobs.
     """
-    if diff.b_blob is None and diff.deleted_file:
-        # This is a deletion, so return negative the size of the original.
-        return diff.a_blob.size * -1
+    try:
+        if diff.b_blob is None and diff.deleted_file:
+            # This is a deletion, so return negative the size of the original.
+            return diff.a_blob.size * -1
 
-    if diff.a_blob is None and diff.new_file:
-        # This is a new file, so return the size of the new value.
-        return diff.b_blob.size
+        if diff.a_blob is None and diff.new_file:
+            # This is a new file, so return the size of the new value.
+            return diff.b_blob.size
 
-    # Otherwise just return the size a-b
-    return diff.a_blob.size - diff.b_blob.size
+        # Otherwise just return the size a-b
+        return diff.a_blob.size - diff.b_blob.size
+    except ValueError as e:
+        if re.match(r"^SHA .*\s*could not be ", str(e).strip()):
+            log.info(f"Skipping failed diff size lookup: {str(e)}")
+            return None
+        raise
 
 
 def _diff_type(diff):
     """
     Determines the type of the diff by looking at the diff flags.
     """
-    if diff.renamed:
-        return "R"
-    if diff.deleted_file:
-        return "D"
-    if diff.new_file:
-        return "A"
-    return "M"
+    try:
+        if diff.renamed:
+            return "R"
+        if diff.deleted_file:
+            return "D"
+        if diff.new_file:
+            return "A"
+        return "M"
+    except ValueError as e:
+        if re.match(r"^SHA .*\s*could not be ", str(e).strip()):
+            log.info(f"Skipping failed diff type lookup: {str(e)}")
+            return None
+        raise
 
 
 def clone_repo(clone_url, to_path):
@@ -71,7 +83,7 @@ def generate_git_export_file_name(
 ):
     if not all([file_suffix, customer_id, source_id, repo_id, entity_name]):
         raise ValueError(f"One or more file name parts missing")
-    
+
     return f"{customer_id}__{source_id}__{repo_id}__{entity_name}.{file_suffix}"
 
 
@@ -182,25 +194,31 @@ class GitRepoExtractor:
                 continue
 
             # Update the stats with the additional information
+            size_delta = _diff_size(diff)
+            type_ = _diff_type(diff)
+
             stats.update(
                 {
                     "tm_id": tm_id.git_commit_diff(commit.hexsha, objpath),
                     "sensor_id": self.sensor_id,
                     "repo_id": repo_tm_id,
+                    "commit_id": tm_id.git_commit(commit.hexsha),
                     "a_path": diff.a_path,
                     "b_path": diff.b_path,
                     "a_object_id": tm_id.git_path(repo_tm_id, diff.a_path),
                     "b_object_id": tm_id.git_path(repo_tm_id, diff.b_path),
-                    "commit_id": tm_id.git_commit(commit.hexsha),
-                    "size_delta": _diff_size(diff),
-                    "type": _diff_type(diff),
+                    "size_delta": size_delta,
+                    "type": type_,
                 }
             )
 
             yield stats
 
     def extract_commits_and_history(self, repo, repo_tm_id, rev, fallback_rev=None):
-        for commit_obj in repo_commits_iter(repo, rev, fallback_rev):
+        for idx, commit_obj in enumerate(repo_commits_iter(repo, rev, fallback_rev)):
+            if idx and not (idx % 100):
+                log.debug(f"{idx} commits done - still working ...")
+
             diffs = self.load_commit_diffs(repo_tm_id, commit_obj)
 
             commit = {

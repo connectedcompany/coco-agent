@@ -1,11 +1,12 @@
 import os
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import git as gitpython
 import pytest
 import srsly
 from coco_agent.services import git
+from pytest import raises
 
 
 def test_generate_git_export_file_name():
@@ -111,6 +112,49 @@ def test_git_repo_extractor_validation(mock_name_getter):
         )
 
 
+def test_diff_size_error_handling():
+    # handle sha missing error on size
+    diff = MagicMock(a_blob=None, new_file=True)
+    type(diff).b_blob = PropertyMock(
+        side_effect=ValueError(
+            "SHA b'3f7910b7586a7160be9b3760c17e71090a4ec9cf' could not be resolved, git returned: b'3f7910b7586a7160be9b3760c17e71090a4ec9cf missing'"
+        )
+    )
+    assert git._diff_size(diff) is None
+
+    # handle sha missing error on size - no caption
+    diff = MagicMock(a_blob=None, new_file=True)
+    type(diff).b_blob = PropertyMock(
+        side_effect=ValueError("SHA could not be resolved, git returned: missing'")
+    )
+    assert git._diff_size(diff) is None
+
+    # reraise arbitrary error
+    diff = MagicMock(a_blob=None, new_file=True)
+    type(diff).b_blob = PropertyMock(
+        side_effect=ValueError("SHAme there's been an error")
+    )
+    with raises(ValueError, match="SHAme"):
+        git._diff_size(diff)
+
+
+def test_diff_type_error_handling():
+    # handle sha missing error on type
+    diff = MagicMock()
+    type(diff).renamed = PropertyMock(
+        side_effect=ValueError(
+            "SHA b'3f7910b7586a7160be9b3760c17e71090a4ec9cf' could not be found"
+        )
+    )
+    assert git._diff_type(diff) is None
+
+    # reraise arbitrary error
+    diff = MagicMock(renamed=False)
+    type(diff).deleted_file = PropertyMock(side_effect=ValueError("Something else"))
+    with raises(ValueError, match="Something"):
+        git._diff_type(diff)
+
+
 # ---- INTEGRATION TESTS ---- TODO: pull out
 
 REPO_TM_ID = "gir-test"
@@ -152,6 +196,7 @@ def test_repo_extractor():
         assert len(commit["diffs"]) > 0
         for diff in commit["diffs"]:
             assert diff["type"] in ["A", "D", "M", "R"]
+            assert diff["size_delta"] is not None
             assert diff["repo_id"] == REPO_TM_ID
             assert diff["commit_id"] == commit["tm_id"]
 
