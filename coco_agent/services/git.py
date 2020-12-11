@@ -256,7 +256,7 @@ class GitRepoExtractor:
             if not repo_name:
                 raise ValueError(f"Could not infer repo name from remote")
 
-            log.info(f"Starting extract for repo {repo_name}...")
+            log.info(f"{'-' * 10} Starting extract for repo {repo_name} {'-' * 10}")
 
             repo_tm_id = self.repo_tm_id
             if not repo_tm_id and self.autogenerate_repo_id:

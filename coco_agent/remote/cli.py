@@ -13,22 +13,33 @@ CLI_LOG_LEVEL_OPT_KWARGS = dict(
     type=click.Choice(["debug", "info", "warn", "error"], case_sensitive=False),
     help=f"Logging level - one of {','.join(CLI_LOG_LEVELS)}",
 )
+LOG_FORMAT = (
+    "%(asctime)s.%(msecs)03d {%(filename)s:%(lineno)d} %(levelname)s: %(message)s"
+)
+LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def apply_log_level(log_level_str, module=coco_agent.__name__):
+def apply_log_config(log_level_str, module=coco_agent.__name__):
     if not log_level_str:
         return
+
     log_level_str = log_level_str.strip().upper()
     if not hasattr(logging, log_level_str):
         raise ValueError(f"Unknown log level: {log_level_str}")
 
     log_level = getattr(logging, log_level_str)
+    log_formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
-    logging.getLogger(module).setLevel(log_level)
-    logging.basicConfig(
-        format="%(asctime)s.%(msecs)03d {%(filename)s:%(lineno)d} %(levelname)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    logger = logging.getLogger(module)
+    logger.setLevel(log_level)
+
+    log_path = "."
+    file_name = "coco-agent"
+    file_handler = logging.FileHandler(f"{log_path}/{file_name}.log")
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+
+    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 
 @click.group()
@@ -68,7 +79,7 @@ def extract_git(
 
     REPO_PATH is the file system path to repo to extract.
     """
-    apply_log_level(log_level)
+    apply_log_config(log_level)
 
     if not source_id:
         source_id = f"{customer_id}-git"
@@ -105,7 +116,7 @@ def upload_logs_dir() -> str:
 @click.argument("directory")
 def upload_data_dir(customer_id, credentials_file, log_level, directory) -> str:
     """ Upload content of a directory """
-    apply_log_level(log_level)
+    apply_log_config(log_level)
     print("DDDDD")
     upload_dir_to_gcs(
         credentials_file, directory, customer_id=customer_id, bucket_subpath="data"
