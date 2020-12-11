@@ -21,6 +21,7 @@ def test_git_extract():
                 "--source-id=test",
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
+                "--log-level=debug",
                 ".",
             ],
             catch_exceptions=False,
