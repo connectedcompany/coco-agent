@@ -6,7 +6,7 @@ config = {
     #'url': 'unused',
     #'download_url': 'Where to download it.',
     #'author_email': 'My email.',
-    "version": "0.1",
+    "version": "0.1.1",
     "install_requires": [
         "click==7.1.2",
         "gitpython==3.1.11",
