@@ -264,6 +264,7 @@ class GitRepoExtractor:
         """Extractor for commits and diffs for a git repo. Emits 2-tuples of (rec type, record)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             if urlparse(self.clone_url_or_path).scheme in GIT_URL_SCHEMES:
+                log.info(f"Cloning {self.clone_url_or_path}...")
                 repo = clone_repo(self.clone_url_or_path, tmpdir)
             else:
                 repo = git.Repo(self.clone_url_or_path)

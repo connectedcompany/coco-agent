@@ -16,9 +16,12 @@ from pytest import mark
 @mark.parametrize(
     "repo_url, repo_name, min_commits",
     [
+        # small-ish data repo
         ("https://github.com/pyro-ppl/numpyro.git", "numpyro", 700),
-        ("https://github.com/google/jax.git", "jax", 6000),
+        #  large app repo
         ("https://github.com/apache/incubator-superset.git", "superset", 6000),
+        # older tool repo
+        ("https://github.com/findbugsproject/findbugs.git", "findbugs", 10000),
     ],
 )
 @patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
