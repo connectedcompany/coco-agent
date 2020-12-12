@@ -29,6 +29,7 @@ jobs:
 
       - name: Integration tests
         run: |
+          source venv/bin/activate
           pytest -s integration_tests/
 
       - name: Snyk package deps scan
