@@ -227,6 +227,7 @@ class GitRepoExtractor:
                 log.debug(f"{idx} commits done - still working ...")
 
             try:
+                log.debug(f"Processing commit {commit_obj.hexsha}")
                 diffs = self.load_commit_diffs(repo_tm_id, commit_obj)
 
                 commit = {
@@ -254,7 +255,7 @@ class GitRepoExtractor:
             except Exception as e:
                 if ignore_errors:
                     log.exception(
-                        f"Error whilst processing commit {commit_obj.hexsha} - will continue as ignore_errors is set"
+                        f"Error processing commit {commit_obj.hexsha} - will continue as ignore_errors is set"
                     )
                 else:
                     raise
