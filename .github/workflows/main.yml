@@ -27,6 +27,10 @@ jobs:
           pip install -r requirements.txt
           pytest tests/
 
+      - name: Integration tests
+        run: |
+          pytest -o log_cli=true integration_tests/
+
       - name: Snyk package deps scan
         uses: snyk/actions/python@master
         env:

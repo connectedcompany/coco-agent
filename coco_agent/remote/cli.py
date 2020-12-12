@@ -19,7 +19,7 @@ LOG_FORMAT = (
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def apply_log_config(log_level_str, module=coco_agent.__name__):
+def apply_log_config(log_level_str, log_to_file=True, module=coco_agent.__name__):
     if not log_level_str:
         return
 
@@ -65,7 +65,15 @@ def extract() -> str:
 )
 @click.option("--output-dir", default="./out", help="Output director")
 @click.option("--branch", default="master", help="Branch / rev spec")
+@click.option(
+    "--ignore-errors",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Ignore commit processing errorss",
+)
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
+@click.option("--log-to-file/--no-log-to-file", required=False, default=True)
 @click.option(
     "--forced-repo-name",
     required=False,
@@ -73,13 +81,21 @@ def extract() -> str:
 )
 @click.argument("repo_path")
 def extract_git(
-    customer_id, source_id, output_dir, branch, log_level, forced_repo_name, repo_path
+    customer_id,
+    source_id,
+    output_dir,
+    branch,
+    ignore_errors,
+    log_level,
+    log_to_file,
+    forced_repo_name,
+    repo_path,
 ) -> str:
     """Extract git repo to an output dir. JSONL is currently supported.
 
     REPO_PATH is the file system path to repo to extract.
     """
-    apply_log_config(log_level)
+    apply_log_config(log_level, log_to_file=log_to_file)
 
     if not source_id:
         source_id = f"{customer_id}-git"
@@ -91,6 +107,7 @@ def extract_git(
         branch=branch,
         repo_path=repo_path,
         forced_repo_name=forced_repo_name,
+        ignore_errors=ignore_errors,
     )
 
 
@@ -113,10 +130,13 @@ def upload_logs_dir() -> str:
 @click.option("--customer-id", required=True, help="Customer identifier")
 @click.option("--credentials-file", required=True, help="Path to credentials file")
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
+@click.option("--log-to-file/--no-log-to-file", required=False, default=False)
 @click.argument("directory")
-def upload_data_dir(customer_id, credentials_file, log_level, directory) -> str:
+def upload_data_dir(
+    customer_id, credentials_file, log_level, log_to_file, directory
+) -> str:
     """ Upload content of a directory """
-    apply_log_config(log_level)
+    apply_log_config(log_level, log_to_file=log_to_file)
     print("DDDDD")
     upload_dir_to_gcs(
         credentials_file, directory, customer_id=customer_id, bucket_subpath="data"

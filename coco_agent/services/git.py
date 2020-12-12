@@ -32,6 +32,11 @@ def get_path(objpath):
     return "/".join([matches.group(g) for g in groups if matches.group(g)])
 
 
+def check_repo(repo):
+    # there should be a head commit
+    repo.head.commit
+
+
 def _diff_size(diff):
     """
     Computes the size of the diff by comparing the size of the blobs.
@@ -214,37 +219,47 @@ class GitRepoExtractor:
 
             yield stats
 
-    def extract_commits_and_history(self, repo, repo_tm_id, rev, fallback_rev=None):
+    def extract_commits_and_history(
+        self, repo, repo_tm_id, rev, fallback_rev=None, ignore_errors=False
+    ):
         for idx, commit_obj in enumerate(repo_commits_iter(repo, rev, fallback_rev)):
             if idx and not (idx % 100):
                 log.debug(f"{idx} commits done - still working ...")
 
-            diffs = self.load_commit_diffs(repo_tm_id, commit_obj)
+            try:
+                diffs = self.load_commit_diffs(repo_tm_id, commit_obj)
 
-            commit = {
-                "tm_id": tm_id.git_commit(commit_obj.hexsha),
-                "sensor_id": self.sensor_id,
-                "repo_id": repo_tm_id,
-                "diffs": list(diffs),
-                "author.name": commit_obj.author.name,
-                "author.email": commit_obj.author.email,
-                "committer.name": commit_obj.committer.name,
-                "committer.email": commit_obj.committer.email,
-                "parents": [tm_id.git_commit(x.hexsha) for x in commit_obj.parents],
-            }
+                commit = {
+                    "tm_id": tm_id.git_commit(commit_obj.hexsha),
+                    "sensor_id": self.sensor_id,
+                    "repo_id": repo_tm_id,
+                    "diffs": list(diffs),
+                    "author.name": commit_obj.author.name,
+                    "author.email": commit_obj.author.email,
+                    "committer.name": commit_obj.committer.name,
+                    "committer.email": commit_obj.committer.email,
+                    "parents": [tm_id.git_commit(x.hexsha) for x in commit_obj.parents],
+                }
 
-            for attr in [
-                "hexsha",
-                "authored_date",
-                "committed_date",
-                "message",
-                "summary",
-            ]:
-                commit[attr] = getattr(commit_obj, attr)
+                for attr in [
+                    "hexsha",
+                    "authored_date",
+                    "committed_date",
+                    "message",
+                    "summary",
+                ]:
+                    commit[attr] = getattr(commit_obj, attr)
 
-            yield commit
+                yield commit
+            except Exception as e:
+                if ignore_errors:
+                    log.exception(
+                        f"Error whilst processing commit {commit_obj.hexsha} - will continue as ignore_errors is set"
+                    )
+                else:
+                    raise
 
-    def __call__(self, rev, fallback_rev=None):
+    def __call__(self, rev, fallback_rev=None, ignore_errors=False):
         """Extractor for commits and diffs for a git repo. Emits 2-tuples of (rec type, record)"""
         with tempfile.TemporaryDirectory() as tmpdir:
             if urlparse(self.clone_url_or_path).scheme in GIT_URL_SCHEMES:
@@ -262,9 +277,16 @@ class GitRepoExtractor:
             if not repo_tm_id and self.autogenerate_repo_id:
                 repo_tm_id = self.generate_repo_id_from_remote_name(repo)
 
+            # repo sanity checks
+            check_repo(repo)
+
             # emit commits
             for commit in self.extract_commits_and_history(
-                repo, repo_tm_id, rev=rev, fallback_rev=fallback_rev
+                repo,
+                repo_tm_id,
+                rev=rev,
+                fallback_rev=fallback_rev,
+                ignore_errors=ignore_errors,
             ):
                 yield GIT_COMMIT_TYPE, commit
 
@@ -291,6 +313,7 @@ def ingest_and_store_repo(
     store_fn,
     fallback_branch=None,
     forced_repo_name=None,
+    ignore_errors=False,
 ):
     extractor = GitRepoExtractor(
         customer_id=customer_id,
@@ -302,7 +325,9 @@ def ingest_and_store_repo(
     )
 
     commits, repos = [], []
-    for type_, item in extractor(rev=branch, fallback_rev=fallback_branch):
+    for type_, item in extractor(
+        rev=branch, fallback_rev=fallback_branch, ignore_errors=ignore_errors
+    ):
         if type_ == GIT_COMMIT_TYPE:
             commits.append(item)
         elif type_ == GIT_REPO_TYPE:
@@ -337,6 +362,7 @@ def ingest_repo_to_jsonl(
     output_dir=None,
     fall_back_from_master_to_main=True,
     forced_repo_name=None,
+    ignore_errors=False,
 ):
     output_dir = output_dir or os.path.join(".", "out")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -358,4 +384,5 @@ def ingest_repo_to_jsonl(
             "main" if branch == "master" and fall_back_from_master_to_main else None
         ),
         forced_repo_name=forced_repo_name,
+        ignore_errors=ignore_errors,
     )

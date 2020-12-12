@@ -1,5 +1,6 @@
 import os
 import tempfile
+from collections import defaultdict
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import git as gitpython
@@ -199,6 +200,27 @@ def test_repo_extractor():
             assert diff["size_delta"] is not None
             assert diff["repo_id"] == REPO_TM_ID
             assert diff["commit_id"] == commit["tm_id"]
+
+
+@patch("coco_agent.services.git.GitRepoExtractor.load_commit_diffs")
+def test_repo_extractor_ignore_errors(mock_load):
+    mock_load.side_effect = ValueError("boom")
+
+    extractor = git.GitRepoExtractor(
+        ".",
+        customer_id="test-cust-id",
+        source_id="test-source-id",
+        repo_tm_id=REPO_TM_ID,
+        forced_repo_name="test-repo",
+        use_repo_link_url_from_remote=True,
+    )
+
+    extracted = defaultdict(list)
+    for type_, item in extractor(rev="master", fallback_rev="main", ignore_errors=True):
+        extracted[type_].append(item)
+
+    assert len(extracted[git.GIT_REPO_TYPE]) == 1
+    assert len(extracted[git.GIT_COMMIT_TYPE]) == 0  #  errored
 
 
 @patch(git.__name__ + "." + git.get_repo_name_from_remote.__name__)

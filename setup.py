@@ -1,12 +1,13 @@
 from setuptools import find_packages, setup
 
 config = {
+    "version": "0.1.2",
+    "name": "coco-agent",
     "description": "coco-agent",
     "author": "CoCo",
     #'url': 'unused',
     #'download_url': 'Where to download it.',
     #'author_email': 'My email.',
-    "version": "0.1.1",
     "install_requires": [
         "click==7.1.2",
         "gitpython==3.1.11",
@@ -17,7 +18,6 @@ config = {
     "python_requires": ">=3.6",
     "packages": find_packages(),
     "scripts": ["coco-agent"],
-    "name": "coco-agent",
 }
 
 setup(**config)

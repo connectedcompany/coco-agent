@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
+import srsly
 from click.testing import CliRunner
 from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli
@@ -22,6 +23,7 @@ def test_git_extract():
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
                 "--log-level=debug",
+                "--log-to-file",
                 ".",
             ],
             catch_exceptions=False,
@@ -30,6 +32,44 @@ def test_git_extract():
 
         files = [f for f in os.listdir(tmpdir)]
         assert len(files) == 3
+
+
+@patch("coco_agent.services.git.GitRepoExtractor.load_commit_diffs")
+def test_git_extract_ignore_errors(mock_load_diffs):
+    mock_load_diffs.side_effect = ValueError("simulated error")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "extract",
+                "git-repo",
+                "--customer-id=test",
+                "--source-id=test",
+                "--output-dir=" + tmpdir,
+                "--forced-repo-name=test-repo",
+                "--log-level=debug",
+                "--log-to-file",
+                "--ignore-errors",
+                ".",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0, result.output
+
+        commits_file = [f for f in os.listdir(tmpdir) if "git_commits" in f][0]
+        assert (
+            list(
+                srsly.read_jsonl(
+                    os.path.join(
+                        tmpdir,
+                        commits_file,
+                    )
+                )
+            )
+            == []
+        )
 
 
 @patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
