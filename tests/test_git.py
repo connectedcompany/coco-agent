@@ -202,6 +202,28 @@ def test_repo_extractor():
             assert diff["commit_id"] == commit["tm_id"]
 
 
+def test_repo_extractor_different_dbs_same_results():
+    extractor_kwargs = dict(
+        customer_id="test-cust-id",
+        source_id="test-source-id",
+        repo_tm_id=REPO_TM_ID,
+        forced_repo_name="test-repo",
+        use_repo_link_url_from_remote=True,
+    )
+
+    extractor_non_native = git.GitRepoExtractor(
+        ".", **extractor_kwargs, use_non_native_repo_db=False
+    )
+    extractor_native = git.GitRepoExtractor(
+        ".", **extractor_kwargs, use_non_native_repo_db=True
+    )
+
+    items_non_native = [item for item in extractor_non_native(rev="master")]
+    items_native = [item for item in extractor_native(rev="master")]
+
+    assert items_non_native == items_native
+
+
 @patch("coco_agent.services.git.GitRepoExtractor.load_commit_diffs")
 def test_repo_extractor_ignore_errors(mock_load):
     mock_load.side_effect = ValueError("boom")
