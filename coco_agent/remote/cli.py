@@ -72,6 +72,13 @@ def extract() -> str:
     required=False,
     help="Ignore commit processing errorss",
 )
+@click.option(
+    "--use-non-native-repo-db",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Use pure Python repo DB in case of issues - not suitable for server processes",
+)
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=True)
 @click.option(
@@ -86,6 +93,7 @@ def extract_git(
     output_dir,
     branch,
     ignore_errors,
+    use_non_native_repo_db,
     log_level,
     log_to_file,
     forced_repo_name,
@@ -108,6 +116,7 @@ def extract_git(
         repo_path=repo_path,
         forced_repo_name=forced_repo_name,
         ignore_errors=ignore_errors,
+        use_non_native_repo_db=use_non_native_repo_db,
     )
 
 

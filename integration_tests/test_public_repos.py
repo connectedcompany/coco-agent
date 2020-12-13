@@ -14,18 +14,22 @@ from pytest import mark
 
 
 @mark.parametrize(
-    "repo_url, repo_name, min_commits",
+    "repo_url, repo_name, use_non_native_repo_db, min_commits",
     [
         # small-ish data repo
-        ("https://github.com/pyro-ppl/numpyro.git", "numpyro", 700),
+        ("https://github.com/pyro-ppl/numpyro.git", "numpyro", False, 700),
+        #  repo with head / master issues
+        ("https://github.com/jbrowncfa/Cryptobomb", "Cryptobomb", True, -1),
         #  large app repo
-        ("https://github.com/apache/incubator-superset.git", "superset", 6000),
+        ("https://github.com/apache/incubator-superset.git", "superset", True, 6000),
         # older tool repo
-        ("https://github.com/findbugsproject/findbugs.git", "findbugs", 10000),
+        ("https://github.com/findbugsproject/findbugs.git", "findbugs", False, 10000),
     ],
 )
 @patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
-def test_repo_process_and_upload(mock_gcs, repo_url, repo_name, min_commits):
+def test_repo_process_and_upload(
+    mock_gcs, repo_url, repo_name, use_non_native_repo_db, min_commits
+):
     with tempfile.TemporaryDirectory() as tmpdir:
         # setup
         repo_path = os.path.join(tmpdir, repo_name)
@@ -45,6 +49,7 @@ def test_repo_process_and_upload(mock_gcs, repo_url, repo_name, min_commits):
                 "--customer-id=test",
                 "--output-dir=" + out_path,
                 "--forced-repo-name=test-repo",
+                *(["--use-non-native-repo-db"] if use_non_native_repo_db else []),
                 "--log-level=debug",
                 "--no-log-to-file",
                 repo_path,

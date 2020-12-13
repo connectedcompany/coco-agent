@@ -33,8 +33,13 @@ def get_path(objpath):
 
 
 def check_repo(repo):
+    # check refs
+    num_refs = repo.refs
+    log.debug(f"Repo has {len(num_refs)} ref(s)")
+
     # there should be a head commit
     repo.head.commit
+    log.debug(f"Repo head commit check ok")
 
 
 def _diff_size(diff):
@@ -78,8 +83,8 @@ def _diff_type(diff):
         raise
 
 
-def clone_repo(clone_url, to_path):
-    git.Repo.clone_from(clone_url, to_path)
+def clone_repo(clone_url, to_path, **kwargs):
+    git.Repo.clone_from(clone_url, to_path, **kwargs)
     return git.Repo(to_path)
 
 
@@ -147,6 +152,7 @@ class GitRepoExtractor:
         autogenerate_repo_id=False,
         repo_link_url=None,
         use_repo_link_url_from_remote=False,
+        use_non_native_repo_db=False,
     ) -> None:
         self.clone_url_or_path = clone_url_or_path
         if not sensor and (not customer_id or not source_id):
@@ -169,6 +175,7 @@ class GitRepoExtractor:
         self.autogenerate_repo_id = autogenerate_repo_id
         self.repo_link_url = repo_link_url
         self.use_repo_link_from_remote = use_repo_link_url_from_remote
+        self.use_non_native_repo_db = use_non_native_repo_db
 
     def generate_repo_id_from_remote_name(self, repo):
         repo_name = get_repo_name_from_remote(repo)
@@ -263,11 +270,13 @@ class GitRepoExtractor:
     def __call__(self, rev, fallback_rev=None, ignore_errors=False):
         """Extractor for commits and diffs for a git repo. Emits 2-tuples of (rec type, record)"""
         with tempfile.TemporaryDirectory() as tmpdir:
+            # see https://github.com/gitpython-developers/GitPython/issues/642
+            repo_kwargs = dict(odbt=git.db.GitDB) if self.use_non_native_repo_db else {}
             if urlparse(self.clone_url_or_path).scheme in GIT_URL_SCHEMES:
                 log.info(f"Cloning {self.clone_url_or_path}...")
-                repo = clone_repo(self.clone_url_or_path, tmpdir)
+                repo = clone_repo(self.clone_url_or_path, tmpdir, **repo_kwargs)
             else:
-                repo = git.Repo(self.clone_url_or_path)
+                repo = git.Repo(self.clone_url_or_path, **repo_kwargs)
 
             repo_name = self.forced_repo_name or get_repo_name_from_remote(repo)
             if not repo_name:
@@ -316,6 +325,7 @@ def ingest_and_store_repo(
     fallback_branch=None,
     forced_repo_name=None,
     ignore_errors=False,
+    use_non_native_repo_db=False,
 ):
     extractor = GitRepoExtractor(
         customer_id=customer_id,
@@ -324,6 +334,7 @@ def ingest_and_store_repo(
         autogenerate_repo_id=True,
         use_repo_link_url_from_remote=True,
         forced_repo_name=forced_repo_name,
+        use_non_native_repo_db=use_non_native_repo_db,
     )
 
     commits, repos = [], []
@@ -365,6 +376,7 @@ def ingest_repo_to_jsonl(
     fall_back_from_master_to_main=True,
     forced_repo_name=None,
     ignore_errors=False,
+    use_non_native_repo_db=False,
 ):
     output_dir = output_dir or os.path.join(".", "out")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -387,4 +399,5 @@ def ingest_repo_to_jsonl(
         ),
         forced_repo_name=forced_repo_name,
         ignore_errors=ignore_errors,
+        use_non_native_repo_db=use_non_native_repo_db,
     )

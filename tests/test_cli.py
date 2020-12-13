@@ -52,6 +52,7 @@ def test_git_extract_ignore_errors(mock_load_diffs):
                 "--log-level=debug",
                 "--log-to-file",
                 "--ignore-errors",
+                "--use-non-native-repo-db",
                 ".",
             ],
             catch_exceptions=False,
