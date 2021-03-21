@@ -13,7 +13,7 @@ config = {
         "gitpython==3.1.11",
         "google-cloud-storage==1.33.0",
         "pybase62==0.4.3",
-        "srsly==2.3.2",
+        "srsly>=1.0",
     ],
     "python_requires": ">=3.6",
     "packages": find_packages(),
