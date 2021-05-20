@@ -14,6 +14,7 @@ config = {
         "google-cloud-storage==1.33.0",
         "pybase62==0.4.3",
         "srsly==2.4.1",
+        "srsly>=1.0",
     ],
     "python_requires": ">=3.6",
     "packages": find_packages(),
