@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
+import gitdb
 import srsly
 
 import git
@@ -57,6 +58,9 @@ def _diff_size(diff):
 
         # Otherwise just return the size a-b
         return diff.a_blob.size - diff.b_blob.size
+    except gitdb.exc.BadObject as e:
+        log.info(f"Skipping failed diff size lookup due to bad object: {str(e)}")
+        return None
     except ValueError as e:
         if re.match(r"^SHA .*\s*could not be ", str(e).strip()):
             log.info(f"Skipping failed diff size lookup: {str(e)}")
@@ -76,6 +80,9 @@ def _diff_type(diff):
         if diff.new_file:
             return "A"
         return "M"
+    except gitdb.exc.BadObject as e:
+        log.info(f"Skipping failed diff size lookup due to bad object: {str(e)}")
+        return None
     except ValueError as e:
         if re.match(r"^SHA .*\s*could not be ", str(e).strip()):
             log.info(f"Skipping failed diff type lookup: {str(e)}")

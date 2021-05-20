@@ -4,6 +4,7 @@ from collections import defaultdict
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import git as gitpython
+import gitdb
 import pytest
 import srsly
 from coco_agent.services import git
@@ -138,6 +139,13 @@ def test_diff_size_error_handling():
     with raises(ValueError, match="SHAme"):
         git._diff_size(diff)
 
+    # handle badobject error on size
+    diff = MagicMock(a_blob=None, new_file=True)
+    type(diff).b_blob = PropertyMock(
+        side_effect=gitdb.exc.BadObject(b"b90713be305978a582ff222db84f03262fce5416")
+    )
+    assert git._diff_size(diff) is None
+
 
 def test_diff_type_error_handling():
     # handle sha missing error on type
@@ -154,6 +162,13 @@ def test_diff_type_error_handling():
     type(diff).deleted_file = PropertyMock(side_effect=ValueError("Something else"))
     with raises(ValueError, match="Something"):
         git._diff_type(diff)
+
+    # handle badobject error on size
+    diff = MagicMock()
+    type(diff).renamed = PropertyMock(
+        side_effect=gitdb.exc.BadObject(b"b90713be305978a582ff222db84f03262fce5416")
+    )
+    assert git._diff_type(diff) is None
 
 
 # ---- INTEGRATION TESTS ---- TODO: pull out
