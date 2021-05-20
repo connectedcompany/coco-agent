@@ -20,7 +20,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 - Install the latest version of the tool the virtual environment:
 
   ```
-  pip install -U "git+https://github.com/team-machine/coco-agent.git"
+  pip install -U "git+https://github.com/connectedcompany/coco-agent.git"
   ```
 
 ## Extract metadata from a Git repository
