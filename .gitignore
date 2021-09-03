@@ -2,3 +2,4 @@ __pycache__
 out
 venv
 *.log
+.pytest_cache
