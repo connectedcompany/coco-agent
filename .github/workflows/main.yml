@@ -44,12 +44,12 @@ jobs:
       #     source venv/bin/activate
       #     pytest -s integration_tests/
 
-      # - name: Snyk package deps scan
-      #   uses: snyk/actions/python@master
-      #   env:
-      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      #   with:
-      #     args: --file=setup.py
+      - name: Snyk package deps scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=setup.py
 
       - name: Tag and push
         run: |
