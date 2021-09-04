@@ -78,6 +78,7 @@ jobs:
         run: |
           python -mvenv venv-test-pypi
           source venv-test-pypi/bin/activate
+          pip install -U pip
           pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
