@@ -57,12 +57,17 @@ jobs:
           git add setup.py && git commit -m "Version ${VERSION}"
           git push --follow-tags
 
-      # - name: Publish to pip
-      #   run: |
-      #     source venv/bin/activate
-      #     python setup.py sdist bdist_wheel
+      - name: Set up PyPI env
+        run: |
+          echo "TWINE_USERNAME='${{ secrets.PYPI_USERNAME }}'" >> $GITHUB_ENV
+          echo "TWINE_PASSWORD='${{ secrets.PYPI_PASSWORD }}'" >> $GITHUB_ENV
 
-      #     twine check dist/*
-      #     twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+      - name: Publish to pip
+        run: |
+          source venv/bin/activate
+          python setup.py sdist bdist_wheel
+
+          twine check dist/*
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
       #     twine upload dist/*
