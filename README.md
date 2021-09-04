@@ -4,7 +4,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 
 - python 3.6+ (`python3 --version` to check)
 - CC customer ID
-- optionally, a data upload key
+- optionally, a data upload key to push data extracts to CC
 
 ## Environment setup
 
@@ -20,7 +20,7 @@ A set of tools and utilities for extracting and shipping raw data to CC.
 - Install the latest version of the tool the virtual environment:
 
   ```
-  pip install -U "git+https://github.com/connectedcompany/coco-agent.git"
+  pip install -U coco-agent
   ```
 
 ## Extract metadata from a Git repository
