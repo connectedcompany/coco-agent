@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0 # fetch full history for all branches / tags as tests use this
-
+      - uses: snyk/actions/setup@master
       - uses: actions/setup-python@v2
         with:
           python-version: 3.6
@@ -45,11 +45,11 @@ jobs:
       #     pytest -s integration_tests/
 
       - name: Snyk package deps scan
-        uses: snyk/actions/python@master
+        run: |
+          source venv/bin/activate
+          snyk test --file=setup.py
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=setup.py
 
       - name: Tag and push
         run: |
