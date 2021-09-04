@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 config = {
-    "version": "0.2.6",
+    "version": "0.2.7",
     "name": "coco-agent",
     "description": "coco-agent",
     "author": "connectedcompany.io",
