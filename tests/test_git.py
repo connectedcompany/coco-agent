@@ -205,16 +205,23 @@ def test_repo_extractor():
     assert len(commits) > 0
     assert commits[0]["authored_date"] < commits[1]["authored_date"]
 
+    # it's possible to have zero diff commits - but they should be few and far between
+    num_zero_diff_commits = 0
     for commit in commits:
         assert commit["tm_id"].startswith("gic")
         assert commit["repo_id"] == REPO_TM_ID
 
-        assert len(commit["diffs"]) > 0
+        if len(commit["diffs"]) == 0:
+            num_zero_diff_commits += 1
+            continue
+
         for diff in commit["diffs"]:
             assert diff["type"] in ["A", "D", "M", "R"]
             assert diff["size_delta"] is not None
             assert diff["repo_id"] == REPO_TM_ID
             assert diff["commit_id"] == commit["tm_id"]
+
+    assert num_zero_diff_commits / len(commits) < 0.1
 
 
 def test_repo_extractor_different_dbs_same_results():
