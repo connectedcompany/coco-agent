@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 long_description = (Path(__file__).parent / "README.md").read_text()
 
 config = {
-    "version": "0.2.8",
+    "version": "0.2.9",
     "name": "coco-agent",
     "description": "coco-agent",
     "author": "connectedcompany.io",
