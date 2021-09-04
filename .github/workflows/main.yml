@@ -78,7 +78,7 @@ jobs:
         run: |
           python -mvenv venv-test-pypi
           source venv-test-pypi/bin/activate
-          pip install --index-url https://test.pypi.org/legacy/ coco-agent
+          pip install --index-url https://test.pypi.org/simple/ coco-agent
 
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@master
