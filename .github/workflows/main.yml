@@ -25,15 +25,14 @@ jobs:
             && VERSION=${LAST_VER[0]}.${LAST_VER[1]}.$((${LAST_VER[2]}+1)) \
             && echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      # - name: Unit tests
-      #   run: |
-      #     python -mvenv venv
-      #     source venv/bin/activate
-      #     pip install -U cython
-      #     pip install -r dev_requirements.txt
-      #     pip install -r requirements.txt
+      - name: Unit tests
+        run: |
+          python -mvenv venv
+          source venv/bin/activate
+          pip install -U cython
+          pip install -r dev_requirements.txt
+          pip install -r requirements.txt
       #     pytest -s tests/
-
       # - name: Integration tests
       #   run: |
       #     source venv/bin/activate
