@@ -20,7 +20,6 @@ jobs:
 
       - name: Setup environment
         run: |
-          git fetch --prune --unshallow --tags # > /dev/null 2>&1 # to get stable branch and tags
           echo "ARTEFACT=coco-agent" >> $GITHUB_ENV
           IFS="." read -ra LAST_VER <<< $(grep '"version"' setup.py | cut -d'"' -f4) \
             && VERSION=${LAST_VER[0]}.${LAST_VER[1]}.$((${LAST_VER[2]}+1)) \
