@@ -25,26 +25,26 @@ jobs:
             && VERSION=${LAST_VER[0]}.${LAST_VER[1]}.$((${LAST_VER[2]}+1)) \
             && echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Unit tests
-        run: |
-          python -mvenv venv
-          source venv/bin/activate
-          pip install -U cython
-          pip install -r dev_requirements.txt
-          pip install -r requirements.txt
-          pytest -s tests/
+      # - name: Unit tests
+      #   run: |
+      #     python -mvenv venv
+      #     source venv/bin/activate
+      #     pip install -U cython
+      #     pip install -r dev_requirements.txt
+      #     pip install -r requirements.txt
+      #     pytest -s tests/
 
-      - name: Integration tests
-        run: |
-          source venv/bin/activate
-          pytest -s integration_tests/
+      # - name: Integration tests
+      #   run: |
+      #     source venv/bin/activate
+      #     pytest -s integration_tests/
 
-      - name: Snyk package deps scan
-        uses: snyk/actions/python@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=setup.py
+      # - name: Snyk package deps scan
+      #   uses: snyk/actions/python@master
+      #   env:
+      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      #   with:
+      #     args: --file=setup.py
 
       - name: Tag and push
         run: |
@@ -57,17 +57,23 @@ jobs:
           git add setup.py && git commit -m "Version ${VERSION}"
           git push --follow-tags
 
-      - name: Set up PyPI env
+      - name: Set up Test PyPI env
         run: |
-          echo "TWINE_USERNAME='${{ secrets.PYPI_USERNAME }}'" >> $GITHUB_ENV
-          echo "TWINE_PASSWORD='${{ secrets.PYPI_PASSWORD }}'" >> $GITHUB_ENV
+          echo "TWINE_PASSWORD='${{ secrets.TEST_PYPI_API_TOKEN }}'" >> $GITHUB_ENV
 
-      - name: Publish to pip
+      - name: Publish to Test PyPI
         run: |
+          rm -rf build dist *.egg-info || true
           source venv/bin/activate
           python setup.py sdist bdist_wheel
 
           twine check dist/*
-          twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+          twine upload --non-interactive -u "__token__" --repository-url https://test.pypi.org/legacy/ dist/*
 
-      #     twine upload dist/*
+      - name: Set up PyPI env
+        run: |
+          echo "TWINE_PASSWORD='${{ secrets.PYPI_API_TOKEN }}'" >> $GITHUB_ENV
+
+      # - name: Publish to PyPI
+      #   run: |
+      #     twine upload --non-interactive -u "__token__" dist/*
