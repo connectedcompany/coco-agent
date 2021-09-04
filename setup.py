@@ -1,15 +1,14 @@
-# from pathlib import Path
-
 from setuptools import find_packages, setup
 
-# long_description = (Path(__file__).parent / "README.md").read_text()
+with open("README.md", "r") as f:
+    long_description = f.read()
 
 config = {
     "version": "0.2.9",
     "name": "coco-agent",
     "description": "coco-agent",
     "author": "connectedcompany.io",
-    "long_description": "README.md",
+    "long_description": long_description,
     "long_description_content_type": "text/markdown",
     "url": "https://github.com/connectedcompany/coco-agent",
     #'download_url': 'Where to download it.',
