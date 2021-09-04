@@ -25,14 +25,20 @@ jobs:
             && VERSION=${LAST_VER[0]}.${LAST_VER[1]}.$((${LAST_VER[2]}+1)) \
             && echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Unit tests
+      - name: Install deps
         run: |
           python -mvenv venv
           source venv/bin/activate
-          pip install -U cython
+          pip install -U cython pip
           pip install -r dev_requirements.txt
           pip install -r requirements.txt
+
+      # - name: Unit tests
+      #   run: |
+      #     python -mvenv venv
+      #     source venv/bin/activate
       #     pytest -s tests/
+
       # - name: Integration tests
       #   run: |
       #     source venv/bin/activate
@@ -56,22 +62,34 @@ jobs:
           git add setup.py && git commit -m "Version ${VERSION}"
           git push --follow-tags
 
-      - name: Set up Test PyPI env
-        run: |
-          echo "TWINE_PASSWORD='${{ secrets.TEST_PYPI_API_TOKEN }}'" >> $GITHUB_ENV
-
-      - name: Publish to Test PyPI
+      - name: Prepare PyPI distribution
         run: |
           rm -rf build dist *.egg-info || true
           source venv/bin/activate
           python setup.py sdist bdist_wheel
 
-          twine check dist/*
-          twine upload --non-interactive -u "__token__" --repository-url https://test.pypi.org/legacy/ dist/*
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
 
-      - name: Set up PyPI env
-        run: |
-          echo "TWINE_PASSWORD='${{ secrets.PYPI_API_TOKEN }}'" >> $GITHUB_ENV
+      # - name: Set up Test PyPI env
+      #   run: |
+      #     echo "TWINE_PASSWORD='${{ secrets.TEST_PYPI_API_TOKEN }}'" >> $GITHUB_ENV
+
+      # - name: Publish to Test PyPI
+      #   run: |
+      #     rm -rf build dist *.egg-info || true
+      #     source venv/bin/activate
+      #     python setup.py sdist bdist_wheel
+
+      #     twine check dist/*
+      #     twine upload --non-interactive -u "__token__" --repository-url https://test.pypi.org/legacy/ dist/*
+
+      # - name: Set up PyPI env
+      #   run: |
+      #     echo "TWINE_PASSWORD='${{ secrets.PYPI_API_TOKEN }}'" >> $GITHUB_ENV
 
       # - name: Publish to PyPI
       #   run: |
