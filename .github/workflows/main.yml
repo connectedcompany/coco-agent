@@ -18,6 +18,14 @@ jobs:
         with:
           python-version: 3.6
 
+      - name: Setup environment
+        run: |
+          git fetch --prune --unshallow --tags > /dev/null 2>&1 # to get stable branch and tags
+          echo "ARTEFACT=coco-agent" >> $GITHUB_ENV
+          IFS="." read -ra LAST_VER <<< $(grep '"version"' setup.py | cut -d'"' -f4) \
+            && VERSION=${LAST_VER[0]}.${LAST_VER[1]}.$((${LAST_VER[2]}+1)) \
+            && echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Unit tests
         run: |
           python -mvenv venv
@@ -38,3 +46,24 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --file=setup.py
+
+      - name: Tag and push
+        run: |
+          # get git user deets from last commit
+          git config --local user.email "$(git log --format='%ae' HEAD^!)"
+          git config --local user.name "$(git log --format='%an' HEAD^!)"
+
+          git tag v$VERSION -m "Version $VERSION"
+          sed -i -E 's/("version":\s+")\S+\.\S+\.\S+(")/\1'$VERSION'\2/g' setup.py
+          git add setup.py && git commit -m "Version ${VERSION}"
+          git push --follow-tags
+
+      # - name: Publish to pip
+      #   run: |
+      #     source venv/bin/activate
+      #     python setup.py sdist bdist_wheel
+
+      #     twine check dist/*
+      #     twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+      #     twine upload dist/*

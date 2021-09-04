@@ -1,2 +1,4 @@
 black
 pytest
+twine
+wheel

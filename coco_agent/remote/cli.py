@@ -52,7 +52,7 @@ def cli() -> str:
 
 @cli.group("extract")
 def extract() -> str:
-    """ Data extraction commands """
+    """Data extraction commands"""
     pass
 
 
@@ -125,13 +125,13 @@ def extract_git(
 
 @cli.group("upload")
 def upload() -> str:
-    """ Content uploading (data, logs, etc) """
+    """Content uploading (data, logs, etc)"""
     pass
 
 
 @upload.command("logs")
 def upload_logs_dir() -> str:
-    """ Upload content of a logs directory """
+    """Upload content of a logs directory"""
     raise NotImplementedError
 
 
@@ -144,9 +144,9 @@ def upload_logs_dir() -> str:
 def upload_data_dir(
     customer_id, credentials_file, log_level, log_to_file, directory
 ) -> str:
-    """ Upload content of a directory """
+    """Upload content of a directory"""
     apply_log_config(log_level, log_to_file=log_to_file)
-    print("DDDDD")
+
     upload_dir_to_gcs(
         credentials_file, directory, customer_id=customer_id, bucket_subpath="data"
     )
@@ -157,7 +157,7 @@ def upload_data_dir(
 
 @cli.group("encode")
 def encode() -> str:
-    """ Onboarding helpers """
+    """Onboarding helpers"""
     pass
 
 
@@ -165,7 +165,7 @@ def encode() -> str:
 @click.option("-l", "--lower", is_flag=True, required=False, default=False)
 @click.argument("text")
 def encode_short_iden(lower, text):
-    """ Encode text as a short base62 encoded string"""
+    """Encode text as a short base62 encoded string"""
     res = tm_id.encode(text.strip())
     print(res.lower() if lower else res)
 

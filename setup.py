@@ -1,10 +1,12 @@
 from setuptools import find_packages, setup
 
 config = {
-    "version": "0.1.5",
+    "version": "0.2.0",
     "name": "coco-agent",
     "description": "coco-agent",
-    "author": "connectedcompany",
+    "author": "connectedcompany.io",
+    "long_description": "README",
+    "long_description_content_type": "text/markdown",
     "url": "https://github.com/connectedcompany/coco-agent",
     #'download_url': 'Where to download it.',
     #'author_email': 'My email.',
