@@ -4,7 +4,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 config = {
-    "version": "0.2.10",
+    "version": "0.2.11",
     "name": "coco-agent",
     "description": "coco-agent",
     "author": "connectedcompany.io",
