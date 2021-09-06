@@ -58,7 +58,7 @@ jobs:
           git config --local user.name "$(git log --format='%an' HEAD^!)"
 
           git tag v$VERSION -m "Version $VERSION"
-          sed -i -E 's/("version":\s+")\S+\.\S+\.\S+(")/\1'$VERSION'\2/g' setup.py
+          sed -i -E 's/(__version__\s*=\s*[\'"])\S+\.\S+\.\S+([\'"])/\1'$VERSION'\2/g' coco_agent/__init__.py
           git add setup.py && git commit -m "Version ${VERSION}"
           git push --follow-tags
 
@@ -83,6 +83,8 @@ jobs:
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
             coco-agent
+
+          coco-agent version
 
       # - name: Publish distribution 📦 to PyPI
       #   uses: pypa/gh-action-pypi-publish@master

@@ -1,13 +1,30 @@
 import os
+import re
 import tempfile
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
+import coco_agent
 import srsly
 from click.testing import CliRunner
 from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli
 from coco_agent.services.gcs import GCSClient
+
+
+@patch("builtins.print")
+def test_version(mock_print):
+    assert re.match(r"^\d+\.\d+\.\d+$", coco_agent.__version__)
+
+    runner = CliRunner()
+    runner.invoke(
+        cli,
+        [
+            "version",
+        ],
+        catch_exceptions=False,
+    )
+    mock_print.assert_called_with(coco_agent.__version__)
 
 
 def test_git_extract():
