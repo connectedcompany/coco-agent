@@ -1,7 +1,9 @@
 import logging
+import sys
 
 import click
 import coco_agent
+from coco_agent.remote.logging import apply_log_config
 from coco_agent.remote.transfer import upload_dir_to_gcs
 from coco_agent.services import tm_id
 from coco_agent.services.git import ingest_repo_to_jsonl
@@ -13,38 +15,22 @@ CLI_LOG_LEVEL_OPT_KWARGS = dict(
     type=click.Choice(["debug", "info", "warn", "error"], case_sensitive=False),
     help=f"Logging level - one of {','.join(CLI_LOG_LEVELS)}",
 )
-LOG_FORMAT = (
-    "%(asctime)s.%(msecs)03d {%(filename)s:%(lineno)d} %(levelname)s: %(message)s"
-)
-LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-
-def apply_log_config(log_level_str, log_to_file=True, module=coco_agent.__name__):
-    if not log_level_str:
-        return
-
-    log_level_str = log_level_str.strip().upper()
-    if not hasattr(logging, log_level_str):
-        raise ValueError(f"Unknown log level: {log_level_str}")
-
-    log_level = getattr(logging, log_level_str)
-    log_formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
-
-    logger = logging.getLogger(module)
-    logger.setLevel(log_level)
-
-    log_path = "."
-    file_name = "coco-agent"
-    file_handler = logging.FileHandler(f"{log_path}/{file_name}.log")
-    file_handler.setFormatter(log_formatter)
-    logger.addHandler(file_handler)
-
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+log = logging.getLogger(coco_agent.__name__)  # don't use "__main__", misses log config
 
 
 @click.group()
 def cli() -> str:
     pass
+
+
+# --- basics ---
+
+
+@cli.command("version")
+def version() -> str:
+    """Print version"""
+    print(coco_agent.__version__)
 
 
 # --- extractors ---
@@ -81,6 +67,12 @@ def extract() -> str:
 )
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=True)
+@click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
+@click.option(
+    "--credentials-file",
+    required=False,
+    help="Path to credentials file if logging to cloud",
+)
 @click.option(
     "--forced-repo-name",
     required=False,
@@ -96,6 +88,8 @@ def extract_git(
     use_non_native_repo_db,
     log_level,
     log_to_file,
+    log_to_cloud,
+    credentials_file,
     forced_repo_name,
     repo_path,
 ) -> str:
@@ -103,7 +97,14 @@ def extract_git(
 
     REPO_PATH is the file system path to repo to extract.
     """
-    apply_log_config(log_level, log_to_file=log_to_file)
+
+    apply_log_config(
+        log_level,
+        log_to_file=log_to_file,
+        log_to_cloud=log_to_cloud,
+        credentials_file_path=credentials_file,
+    )
+    log.info("CLI args: " + " ".join(sys.argv[1:]))
 
     if not source_id:
         source_id = f"{customer_id}-git"
@@ -157,7 +158,7 @@ def upload_data_dir(
 
 @cli.group("encode")
 def encode() -> str:
-    """Onboarding helpers"""
+    """Name / string encoding helpers"""
     pass
 
 
