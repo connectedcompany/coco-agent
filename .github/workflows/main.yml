@@ -59,7 +59,7 @@ jobs:
 
           git tag v$VERSION -m "Version $VERSION"
           sed -i -E 's/(__version__\s*=\s*")\S+\.\S+\.\S+(")/\1'$VERSION'\2/g' coco_agent/__init__.py
-          git add setup.py && git commit -m "Version ${VERSION}"
+          git add coco_agent/__init__.py && git commit -m "Version ${VERSION}"
           git push --follow-tags
 
       - name: Prepare PyPI distribution
