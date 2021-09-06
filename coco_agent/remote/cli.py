@@ -104,7 +104,7 @@ def extract_git(
         log_to_cloud=log_to_cloud,
         credentials_file_path=credentials_file,
     )
-    log.info("CLI args: " + " ".join(sys.argv[1:]))
+    log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
 
     if not source_id:
         source_id = f"{customer_id}-git"
