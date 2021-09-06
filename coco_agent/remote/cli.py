@@ -24,6 +24,15 @@ def cli() -> str:
     pass
 
 
+# --- basics ---
+
+
+@cli.command("version")
+def version() -> str:
+    """Print version"""
+    print(coco_agent.__version__)
+
+
 # --- extractors ---
 
 

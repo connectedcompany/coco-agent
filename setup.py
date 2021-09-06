@@ -2,9 +2,17 @@ from setuptools import find_packages, setup
 
 with open("README.md", "r") as f:
     long_description = f.read()
+import io
+import re
+
+# source: https://stackoverflow.com/a/39671214/1933315
+__version__ = re.search(
+    r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+    io.open("coco_agent/__init__.py", encoding="utf_8_sig").read(),
+).group(1)
 
 config = {
-    "version": "0.2.12",
+    "version": __version__,
     "name": "coco-agent",
     "description": "coco-agent",
     "author": "connectedcompany.io",
@@ -20,7 +28,7 @@ config = {
         "google-cloud-storage==1.42.0",
         "pybase62==0.4.3",
         "srsly==2.4.1",
-        "urllib3>=1.26.6",
+        "urllib3==1.26.6",
     ],
     "python_requires": ">=3.6",
     "packages": find_packages(),
