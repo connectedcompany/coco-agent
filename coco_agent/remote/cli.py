@@ -141,12 +141,24 @@ def upload_logs_dir() -> str:
 @click.option("--credentials-file", required=True, help="Path to credentials file")
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=False)
+@click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
+@click.option(
+    "--credentials-file",
+    required=False,
+    help="Path to credentials file if logging to cloud",
+)
 @click.argument("directory")
 def upload_data_dir(
-    customer_id, credentials_file, log_level, log_to_file, directory
+    customer_id, credentials_file, log_level, log_to_file, log_to_cloud, directory
 ) -> str:
     """Upload content of a directory"""
-    apply_log_config(log_level, log_to_file=log_to_file)
+    apply_log_config(
+        log_level,
+        log_to_file=log_to_file,
+        log_to_cloud=log_to_cloud,
+        credentials_file_path=credentials_file,
+    )
+    log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
 
     upload_dir_to_gcs(
         credentials_file, directory, customer_id=customer_id, bucket_subpath="data"
