@@ -4,7 +4,7 @@ import sys
 import click
 import coco_agent
 from coco_agent.remote.logging import apply_log_config
-from coco_agent.remote.transfer import upload_dir_to_gcs
+from coco_agent.remote.transfer import upload_dir_to_cc_gcs
 from coco_agent.services import tm_id
 from coco_agent.services.git import ingest_repo_to_jsonl
 
@@ -17,6 +17,17 @@ CLI_LOG_LEVEL_OPT_KWARGS = dict(
 )
 
 log = logging.getLogger(coco_agent.__name__)  # don't use "__main__", misses log config
+
+
+def _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file):
+    apply_log_config(
+        log_level,
+        log_to_file=log_to_file,
+        log_to_cloud=log_to_cloud,
+        credentials_file_path=credentials_file,
+    )
+
+    log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
 
 
 @click.group()
@@ -44,11 +55,7 @@ def extract() -> str:
 
 @extract.command("git-repo")
 @click.option("--customer-id", required=True, help="Customer identifier")
-@click.option(
-    "--source-id",
-    required=False,
-    help="Repo source ID - derived from customer ID if not set",
-)
+@click.option("--source-id", help="Repo source ID - derived from cust ID if not set")
 @click.option("--output-dir", default="./out", help="Output director")
 @click.option("--branch", default="master", help="Branch / rev spec")
 @click.option(
@@ -68,16 +75,8 @@ def extract() -> str:
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=True)
 @click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
-@click.option(
-    "--credentials-file",
-    required=False,
-    help="Path to credentials file if logging to cloud",
-)
-@click.option(
-    "--forced-repo-name",
-    required=False,
-    help="Name to set if one can't be read from origin",
-)
+@click.option("--credentials-file", help="Path to credentials file if logging to cloud")
+@click.option("--forced-repo-name", help="Name to set if one can't be read from origin")
 @click.argument("repo_path")
 def extract_git(
     customer_id,
@@ -98,13 +97,7 @@ def extract_git(
     REPO_PATH is the file system path to repo to extract.
     """
 
-    apply_log_config(
-        log_level,
-        log_to_file=log_to_file,
-        log_to_cloud=log_to_cloud,
-        credentials_file_path=credentials_file,
-    )
-    log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
+    _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file)
 
     if not source_id:
         source_id = f"{customer_id}-git"
@@ -137,31 +130,31 @@ def upload_logs_dir() -> str:
 
 
 @upload.command("data")
-@click.option("--customer-id", required=True, help="Customer identifier")
 @click.option("--credentials-file", required=True, help="Path to credentials file")
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=False)
 @click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
-@click.option(
-    "--credentials-file",
-    required=False,
-    help="Path to credentials file if logging to cloud",
-)
+@click.argument("resource_id")
 @click.argument("directory")
 def upload_data_dir(
-    customer_id, credentials_file, log_level, log_to_file, log_to_cloud, directory
+    resource_id, credentials_file, log_level, log_to_file, log_to_cloud, directory
 ) -> str:
-    """Upload content of a directory"""
-    apply_log_config(
-        log_level,
-        log_to_file=log_to_file,
-        log_to_cloud=log_to_cloud,
-        credentials_file_path=credentials_file,
-    )
-    log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
+    """
+    Upload source dataset from the content of a directory and its subdirectories.
 
-    upload_dir_to_gcs(
-        credentials_file, directory, customer_id=customer_id, bucket_subpath="data"
+    RESOURCE_ID: Identifier of source data being uploaded, provided by CC.
+                 Structured like 'customer-id/source-type/source-id -
+                 for example: mycompany/jira/jira-instance-ids
+
+    DIRECTORY:   Root path from which to upload
+    """
+
+    _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file)
+
+    upload_dir_to_cc_gcs(
+        credentials_file,
+        directory,
+        cc_resource_id=resource_id,
     )
 
 

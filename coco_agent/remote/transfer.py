@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime
 
 from coco_agent.services import tm_id
@@ -15,39 +16,58 @@ def _bucket_name_from_customer_id(customer_id):
     return f"cc-upload-{encoded}"
 
 
+def upload_dir_to_cc_gcs(credentials_file_path, dir_, cc_resource_id):
+    if not cc_resource_id:
+        raise ValueError("Resource id is required")
+
+    matched = re.match(r"^([\w-]+)/([\w-]+)/([\w-]+)$", cc_resource_id)
+    if not matched or not len(matched.groups()) == 3:
+        raise ValueError(
+            f"Invalid resource id format - expected <customer-id>/<source-type>/<source-ids>"
+        )
+
+    customer_id, source_type, source_id = matched.groups()
+
+    bucket_name = _bucket_name_from_customer_id(customer_id)
+    bucket_subpath = f"uploads/{source_type}/{source_id}/{datetime.utcnow().strftime('%y%m%d.%H%M%S')}"
+
+    return upload_dir_to_gcs(
+        credentials_file_path=credentials_file_path,
+        dir_=dir_,
+        bucket_name=bucket_name,
+        bucket_subpath=bucket_subpath,
+    )
+
+
 def upload_dir_to_gcs(
     credentials_file_path,
     dir_,
-    customer_id=None,
-    bucket_name=None,
+    bucket_name,
     bucket_subpath=None,
-    include_timestamp=True,
 ):
-    if not bucket_name and not customer_id:
-        raise ValueError(f"Specify bucket name explicitly, or provide a customer id")
-    bucket_name = bucket_name or _bucket_name_from_customer_id(customer_id)
     bucket_subpath = (bucket_subpath.strip("/") + "/") if bucket_subpath else ""
 
     with open(credentials_file_path) as f:
         sa_info_creds = json.load(f)
     gcs = GCSClient(sa_info_creds)
 
-    files = [f for f in os.listdir(dir_) if os.path.isfile(os.path.join(dir_, f))]
-    for file_ in files:
-        local_file_path = os.path.join(dir_, file_)
-        bucket_file_name = file_
-        if include_timestamp:
-            bucket_file_name = (
-                f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_" + bucket_file_name
-            )
-        bucket_file_name = bucket_subpath + bucket_file_name
+    # files = [f for f in os.listdir(dir_) if os.path.isfile(os.path.join(dir_, f))]
+    source_files = [
+        (file_dir, file_name)
+        for file_dir, subdirs, files in os.walk(dir_)
+        for file_name in files
+    ]
 
-        log.debug(f"Uploading {local_file_path} to {bucket_name} as {bucket_file_name}")
+    for file_dir, file_name in source_files:
+        local_file_path = os.path.join(file_dir, file_name)
+        dest_file_name = bucket_subpath + file_name
+
+        log.debug(f"Uploading {local_file_path} to {bucket_name} as {dest_file_name}")
         gcs.write_file(
             local_file_path,
             bucket_name,
-            bucket_file_name=bucket_file_name,
+            bucket_file_name=dest_file_name,
             skip_bucket_check=True,
         )
 
-    log.info(f"Uploaded {len(files)} file(s) to {bucket_name}")
+    log.info(f"Uploaded {len(source_files)} file(s) to {bucket_name}")

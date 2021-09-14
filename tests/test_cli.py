@@ -114,14 +114,14 @@ def test_upload(mock_gcs):
         mock_gcs_inst = MagicMock()
         mock_gcs.side_effect = lambda _: mock_gcs_inst
 
-        ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
         result = runner.invoke(
             cli,
             [
                 "upload",
                 "data",
-                "--customer-id=test",
                 f"--credentials-file={os.path.join('tests', 'fake_creds.json')}",
+                "test/source-type/source-id",
                 tmpdir,
             ],
             catch_exceptions=False,
@@ -135,7 +135,7 @@ def test_upload(mock_gcs):
                 call(
                     os.path.join(tmpdir, f),
                     "cc-upload-3lvbl6fqqanq2r",
-                    bucket_file_name=f"data/{ts}_{f}",
+                    bucket_file_name=f"uploads/source-type/source-id/{ts}/{f}",
                     skip_bucket_check=True,
                 )
                 for f in os.listdir(tmpdir)
