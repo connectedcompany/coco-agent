@@ -7,7 +7,7 @@ import git as gitpython
 import srsly
 from click.testing import CliRunner
 from coco_agent.remote import transfer
-from coco_agent.remote.cli import cli
+from coco_agent.remote.cli import cli, maybe_sleep
 from coco_agent.services.gcs import GCSClient
 from pytest import mark
 
@@ -134,23 +134,39 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
 
         gitpython.Repo.clone_from(repo_url, repo_path)
 
-        # extract repo
-        runner = CliRunner()
-        result = runner.invoke(
-            cli,
-            [
-                "extract",
-                "git-repo",
-                f"--connector-id={connector_id}",
-                f"--credentials-file={os.path.join('tests', 'fake_creds.json')}",
-                "--log-level=info",
-                "--no-log-to-file",
-                "--upload",
-                repo_path,
-            ],
-            catch_exceptions=False,
-        )
-        assert result.exit_code == 0, result.output
+        # simulate keyboard interrupt after 2 calls
+        num_prev_calls = 0
+
+        def maybe_sleep_patched(*args):
+            nonlocal num_prev_calls
+            if num_prev_calls >= 2:
+                raise KeyboardInterrupt
+
+            num_prev_calls += 1
+            maybe_sleep(*args)
+
+        with mock.patch(
+            ".".join([maybe_sleep.__module__, maybe_sleep.__name__]),
+            side_effect=maybe_sleep_patched,
+        ):
+            # extract repo
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "extract",
+                    "git-repo",
+                    f"--connector-id={connector_id}",
+                    f"--credentials-file={os.path.join('tests', 'fake_creds.json')}",
+                    "--log-level=info",
+                    "--no-log-to-file",
+                    "--upload",
+                    "--repeat-interval-sec=20",
+                    repo_path,
+                ],
+                catch_exceptions=False,
+            )
+        assert result.exit_code == 1, result.output
 
         # check upload
         ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
