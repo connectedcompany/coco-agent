@@ -2,14 +2,14 @@ import os
 import re
 import tempfile
 from datetime import datetime
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest import mock
 
 import coco_agent
 import pytest
 import srsly
 from click.testing import CliRunner
 from coco_agent.remote import transfer
-from coco_agent.remote.cli import cli
+from coco_agent.remote.cli import cli, maybe_sleep
 from coco_agent.services.gcs import GCSClient
 
 
@@ -20,7 +20,7 @@ class AnyStringWith(str):
         return self in other
 
 
-@patch("builtins.print")
+@mock.patch("builtins.print")
 def test_version(mock_print):
     assert re.match(r"^\d+\.\d+\.\d+$", coco_agent.__version__)
 
@@ -58,7 +58,50 @@ def test_git_extract():
         assert len(files) == 3
 
 
-@patch("coco_agent.services.git.GitRepoExtractor.load_commit_diffs")
+def test_git_extract_repeatedly():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        runner = CliRunner()
+
+        # note calls happen at the end of each run, so after 1st run this is still 0
+        num_prev_calls = 0
+
+        # simulate keyboard interrupt after 2 calls
+        def maybe_sleep_patched(*args):
+            nonlocal num_prev_calls
+            if num_prev_calls >= 2:
+                raise KeyboardInterrupt
+
+            num_prev_calls += 1
+            maybe_sleep(*args)
+
+        with mock.patch(
+            ".".join([maybe_sleep.__module__, maybe_sleep.__name__]),
+            side_effect=maybe_sleep_patched,
+        ):
+            result = runner.invoke(
+                cli,
+                [
+                    "extract",
+                    "git-repo",
+                    "--connector-id=test/git/test",
+                    "--output-dir=" + tmpdir,
+                    "--forced-repo-name=test-repo",
+                    "--log-level=debug",
+                    "--log-to-file",
+                    "--repeat-interval-sec=5",
+                    ".",
+                ],
+                catch_exceptions=False,
+            )
+
+        assert result.exit_code == 1, result.output
+        assert num_prev_calls == 2
+
+        files = [f for f in os.listdir(tmpdir)]
+        assert len(files) == 3
+
+
+@mock.patch("coco_agent.services.git.GitRepoExtractor.load_commit_diffs")
 def test_git_extract_ignore_errors(mock_load_diffs):
     mock_load_diffs.side_effect = ValueError("simulated error")
 
@@ -96,7 +139,7 @@ def test_git_extract_ignore_errors(mock_load_diffs):
         )
 
 
-@patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
+@mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
 def test_upload(mock_gcs):
     with tempfile.TemporaryDirectory() as tmpdir:
         runner = CliRunner()
@@ -117,7 +160,7 @@ def test_upload(mock_gcs):
         assert result.exit_code == 0, result.output
 
         # act: upload
-        mock_gcs_inst = MagicMock()
+        mock_gcs_inst = mock.MagicMock()
         mock_gcs.side_effect = lambda _: mock_gcs_inst
 
         ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
@@ -138,7 +181,7 @@ def test_upload(mock_gcs):
         mock_gcs_inst.write_file.call_count == 3
         mock_gcs_inst.write_file.assert_has_calls(
             [
-                call(
+                mock.call(
                     os.path.join(tmpdir, f),
                     "cc-upload-3lvbl6fqqanq2r",
                     bucket_file_name=f"uploads/git/test/{ts}/{f}",
@@ -166,11 +209,11 @@ def test_extract_and_upload_single_command_no_creds():
         )
 
 
-@patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
+@mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
 def test_extract_and_upload_single_command(mock_gcs):
     # setups
     runner = CliRunner()
-    mock_gcs_inst = MagicMock()
+    mock_gcs_inst = mock.MagicMock()
     mock_gcs.side_effect = lambda _: mock_gcs_inst
 
     ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
@@ -196,8 +239,8 @@ def test_extract_and_upload_single_command(mock_gcs):
     mock_gcs_inst.write_file.call_count == 3
     mock_gcs_inst.write_file.assert_has_calls(
         [
-            call(
-                ANY,
+            mock.call(
+                mock.ANY,
                 "cc-upload-3lvbl6fqqanq2r",
                 bucket_file_name=AnyStringWith(f"uploads/git/test/{ts[:9]}"),
                 skip_bucket_check=True,

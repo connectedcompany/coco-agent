@@ -1,6 +1,7 @@
 import logging
 import sys
 import tempfile
+import time
 
 import click
 import coco_agent
@@ -29,6 +30,12 @@ def _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file):
     )
 
     log.info(f"coco-agent v{coco_agent.__version__} - args: " + " ".join(sys.argv[1:]))
+
+
+def maybe_sleep(start_time, interval_sec):
+    sleep_interval = max(0, interval_sec - (time.time() - start_time))
+    log.info(f"Sleeping for {int(sleep_interval)} sec until next run")
+    time.sleep(sleep_interval)
 
 
 @click.group()
@@ -82,6 +89,7 @@ def extract() -> str:
 @click.option("--credentials-file", help="Used if logging or uploading to cloud")
 @click.option("--forced-repo-name", help="Name to set if one can't be read from origin")
 @click.option("--upload/--no-upload", default=False, help="Upload to CC once extracted")
+@click.option("--repeat-interval-sec", type=int, required=False)
 @click.argument("repo_path")
 def extract_git(
     connector_id,
@@ -95,6 +103,7 @@ def extract_git(
     credentials_file,
     forced_repo_name,
     upload,
+    repeat_interval_sec,
     repo_path,
 ) -> str:
     """Extract git repo to an output dir. JSONL is currently supported.
@@ -104,36 +113,47 @@ def extract_git(
 
     _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file)
 
+    if upload and not credentials_file:
+        raise ValueError(f"Credentials file required for upload")
+
     customer_id, _, source_id = tm_id.split_connector_id(connector_id)
 
-    temp_dir = None
-    try:
-        if upload:
-            if not credentials_file:
-                raise ValueError(f"Credentials file required for upload")
-            temp_dir = tempfile.TemporaryDirectory()
-            output_dir = temp_dir.name
+    while True:
+        start_time = time.time()
+        temp_dir = None
 
-        ingest_repo_to_jsonl(
-            customer_id=customer_id,
-            source_id=source_id,
-            output_dir=output_dir,
-            branch=branch,
-            repo_path=repo_path,
-            forced_repo_name=forced_repo_name,
-            ignore_errors=ignore_errors,
-            use_non_native_repo_db=use_non_native_repo_db,
-        )
+        try:
+            if upload:
+                temp_dir = tempfile.TemporaryDirectory()
+                output_dir = temp_dir.name
 
-        if upload:
-            upload_dir_to_cc_gcs(
-                credentials_file,
-                output_dir,
-                connector_id=connector_id,
+            ingest_repo_to_jsonl(
+                customer_id=customer_id,
+                source_id=source_id,
+                output_dir=output_dir,
+                branch=branch,
+                repo_path=repo_path,
+                forced_repo_name=forced_repo_name,
+                ignore_errors=ignore_errors,
+                use_non_native_repo_db=use_non_native_repo_db,
             )
-    finally:
-        if temp_dir:
-            temp_dir.cleanup()
+
+            if upload:
+                upload_dir_to_cc_gcs(
+                    credentials_file,
+                    output_dir,
+                    connector_id=connector_id,
+                )
+        except Exception:
+            log.exception("Error running extract")
+        finally:
+            if temp_dir:
+                temp_dir.cleanup()
+
+        if not repeat_interval_sec or repeat_interval_sec <= 0:
+            break
+
+        maybe_sleep(start_time, repeat_interval_sec)
 
 
 # --- uploaders ---
