@@ -1,5 +1,4 @@
 import os
-import re
 import tempfile
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
@@ -20,7 +19,7 @@ from pytest import mark
         ("https://github.com/pyro-ppl/numpyro.git", "numpyro", "master", False, 800),
         #  repo with head / master issues
         ("https://github.com/jbrowncfa/Cryptobomb", "Cryptobomb", "master", True, -1),
-        #  large app repo(s)
+        #  large app repo(s), non-native db
         (
             "https://github.com/apache/incubator-superset.git",
             "superset",
@@ -28,7 +27,7 @@ from pytest import mark
             True,
             6000,
         ),
-        # older tool repo
+        # older tool repo, native db
         (
             "https://github.com/findbugsproject/findbugs.git",
             "findbugs",
@@ -42,6 +41,8 @@ from pytest import mark
 def test_repo_process_and_upload(
     mock_gcs, repo_url, repo_name, branch_name, use_non_native_repo_db, min_commits
 ):
+    connector_id = "test/git/test"
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # setup
         repo_path = os.path.join(tmpdir, repo_name)
@@ -58,7 +59,7 @@ def test_repo_process_and_upload(
             [
                 "extract",
                 "git-repo",
-                "--customer-id=test",
+                f"--connector-id={connector_id}",
                 "--output-dir=" + out_path,
                 "--forced-repo-name=test-repo",
                 *(["--use-non-native-repo-db"] if use_non_native_repo_db else []),
@@ -72,8 +73,10 @@ def test_repo_process_and_upload(
         assert result.exit_code == 0, result.output
 
         #  check commits
-        commits_file = [f for f in os.listdir(out_path) if "git_commits" in f][0]
-        assert re.match(r"test__test-git__.+__git_commits.jsonl", commits_file)
+        commits_file = [
+            f for f in os.listdir(out_path) if f.endswith("git_commits.jsonl")
+        ][0]
+        assert commits_file
         commits = srsly.read_jsonl(os.path.join(out_path, commits_file))
         assert len(list(commits)) > min_commits
 
@@ -81,14 +84,14 @@ def test_repo_process_and_upload(
         mock_gcs_inst = MagicMock()
         mock_gcs.side_effect = lambda _: mock_gcs_inst
 
-        ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
         result = runner.invoke(
             cli,
             [
                 "upload",
                 "data",
-                "--customer-id=test",
                 f"--credentials-file={os.path.join('tests', '../tests/fake_creds.json')}",
+                connector_id,
                 out_path,
             ],
             catch_exceptions=False,
@@ -102,7 +105,7 @@ def test_repo_process_and_upload(
                 call(
                     os.path.join(out_path, f),
                     "cc-upload-3lvbl6fqqanq2r",
-                    bucket_file_name=f"data/{ts}_{f}",
+                    bucket_file_name=f"uploads/git/test/{ts}/{f}",
                     skip_bucket_check=True,
                 )
                 for f in os.listdir(out_path)
