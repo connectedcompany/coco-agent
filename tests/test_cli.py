@@ -2,14 +2,22 @@ import os
 import re
 import tempfile
 from datetime import datetime
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import coco_agent
+import pytest
 import srsly
 from click.testing import CliRunner
 from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli
 from coco_agent.services.gcs import GCSClient
+
+
+# TODO: move out if used more widely
+# Source: https://stackoverflow.com/questions/16976264/unittest-mock-asserting-partial-match-for-method-argument
+class AnyStringWith(str):
+    def __eq__(self, other):
+        return self in other
 
 
 @patch("builtins.print")
@@ -35,8 +43,7 @@ def test_git_extract():
             [
                 "extract",
                 "git-repo",
-                "--customer-id=test",
-                "--source-id=test",
+                "--connector-id=test/git/test",
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
                 "--log-level=debug",
@@ -62,8 +69,7 @@ def test_git_extract_ignore_errors(mock_load_diffs):
             [
                 "extract",
                 "git-repo",
-                "--customer-id=test",
-                "--source-id=test",
+                "--connector-id=test/git/test",
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
                 "--log-level=debug",
@@ -101,7 +107,7 @@ def test_upload(mock_gcs):
             [
                 "extract",
                 "git-repo",
-                "--customer-id=test",
+                "--connector-id=test/git/test",
                 "--output-dir=" + tmpdir,
                 "--forced-repo-name=test-repo",
                 ".",
@@ -121,7 +127,7 @@ def test_upload(mock_gcs):
                 "upload",
                 "data",
                 f"--credentials-file={os.path.join('tests', 'fake_creds.json')}",
-                "test/source-type/source-id",
+                "test/git/test",
                 tmpdir,
             ],
             catch_exceptions=False,
@@ -135,12 +141,70 @@ def test_upload(mock_gcs):
                 call(
                     os.path.join(tmpdir, f),
                     "cc-upload-3lvbl6fqqanq2r",
-                    bucket_file_name=f"uploads/source-type/source-id/{ts}/{f}",
+                    bucket_file_name=f"uploads/git/test/{ts}/{f}",
                     skip_bucket_check=True,
                 )
                 for f in os.listdir(tmpdir)
             ]
         )
+
+
+def test_extract_and_upload_single_command_no_creds():
+    runner = CliRunner()
+    with pytest.raises(ValueError, match="Credentials file required"):
+        runner.invoke(
+            cli,
+            [
+                "extract",
+                "git-repo",
+                "--connector-id=test/git/test",
+                "--forced-repo-name=test-repo",
+                "--upload",
+                ".",
+            ],
+            catch_exceptions=False,
+        )
+
+
+@patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
+def test_extract_and_upload_single_command(mock_gcs):
+    # setups
+    runner = CliRunner()
+    mock_gcs_inst = MagicMock()
+    mock_gcs.side_effect = lambda _: mock_gcs_inst
+
+    ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
+
+    # act
+    result = runner.invoke(
+        cli,
+        [
+            "extract",
+            "git-repo",
+            "--connector-id=test/git/test",
+            "--forced-repo-name=test-repo",
+            f"--credentials-file={os.path.join('tests', 'fake_creds.json')}",
+            "--upload",
+            ".",
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+
+    # assert
+    assert result.exit_code == 0, result.output
+    mock_gcs_inst.write_file.call_count == 3
+    mock_gcs_inst.write_file.assert_has_calls(
+        [
+            call(
+                ANY,
+                "cc-upload-3lvbl6fqqanq2r",
+                bucket_file_name=AnyStringWith(f"uploads/git/test/{ts[:9]}"),
+                skip_bucket_check=True,
+            )
+            for f in range(3)
+        ]
+    )
 
 
 def test_encode():

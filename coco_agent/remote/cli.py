@@ -1,5 +1,6 @@
 import logging
 import sys
+import tempfile
 
 import click
 import coco_agent
@@ -54,9 +55,12 @@ def extract() -> str:
 
 
 @extract.command("git-repo")
-@click.option("--customer-id", required=True, help="Customer identifier")
-@click.option("--source-id", help="Repo source ID - derived from cust ID if not set")
-@click.option("--output-dir", default="./out", help="Output director")
+@click.option("--connector-id", required=True, help="CC connector identifier")
+@click.option(
+    "--output-dir",
+    default="./out",
+    help="Output directory - ignored if upload flag specified, a temp dir will be used instead",
+)
 @click.option("--branch", default="master", help="Branch / rev spec")
 @click.option(
     "--ignore-errors",
@@ -75,12 +79,12 @@ def extract() -> str:
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=True)
 @click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
-@click.option("--credentials-file", help="Path to credentials file if logging to cloud")
+@click.option("--credentials-file", help="Used if logging or uploading to cloud")
 @click.option("--forced-repo-name", help="Name to set if one can't be read from origin")
+@click.option("--upload/--no-upload", default=False, help="Upload to CC once extracted")
 @click.argument("repo_path")
 def extract_git(
-    customer_id,
-    source_id,
+    connector_id,
     output_dir,
     branch,
     ignore_errors,
@@ -90,6 +94,7 @@ def extract_git(
     log_to_cloud,
     credentials_file,
     forced_repo_name,
+    upload,
     repo_path,
 ) -> str:
     """Extract git repo to an output dir. JSONL is currently supported.
@@ -99,19 +104,36 @@ def extract_git(
 
     _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file)
 
-    if not source_id:
-        source_id = f"{customer_id}-git"
+    customer_id, _, source_id = tm_id.split_connector_id(connector_id)
 
-    ingest_repo_to_jsonl(
-        customer_id=customer_id,
-        source_id=source_id,
-        output_dir=output_dir,
-        branch=branch,
-        repo_path=repo_path,
-        forced_repo_name=forced_repo_name,
-        ignore_errors=ignore_errors,
-        use_non_native_repo_db=use_non_native_repo_db,
-    )
+    temp_dir = None
+    try:
+        if upload:
+            if not credentials_file:
+                raise ValueError(f"Credentials file required for upload")
+            temp_dir = tempfile.TemporaryDirectory()
+            output_dir = temp_dir.name
+
+        ingest_repo_to_jsonl(
+            customer_id=customer_id,
+            source_id=source_id,
+            output_dir=output_dir,
+            branch=branch,
+            repo_path=repo_path,
+            forced_repo_name=forced_repo_name,
+            ignore_errors=ignore_errors,
+            use_non_native_repo_db=use_non_native_repo_db,
+        )
+
+        if upload:
+            upload_dir_to_cc_gcs(
+                credentials_file,
+                output_dir,
+                connector_id=connector_id,
+            )
+    finally:
+        if temp_dir:
+            temp_dir.cleanup()
 
 
 # --- uploaders ---
@@ -134,17 +156,17 @@ def upload_logs_dir() -> str:
 @click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
 @click.option("--log-to-file/--no-log-to-file", required=False, default=False)
 @click.option("--log-to-cloud/--no-log-to-cloud", required=False, default=False)
-@click.argument("resource_id")
+@click.argument("connector_id")
 @click.argument("directory")
 def upload_data_dir(
-    resource_id, credentials_file, log_level, log_to_file, log_to_cloud, directory
+    connector_id, credentials_file, log_level, log_to_file, log_to_cloud, directory
 ) -> str:
     """
     Upload source dataset from the content of a directory and its subdirectories.
 
-    RESOURCE_ID: Identifier of source data being uploaded, provided by CC.
-                 Structured like 'customer-id/source-type/source-id -
-                 for example: mycompany/jira/jira-instance-ids
+    CONNECTOR_ID: Identifier of source data being uploaded, provided by CC.
+    Structured like 'customer-id/source-type/source-id - for example:
+    mycompany/jira/jira-instance-ids
 
     DIRECTORY:   Root path from which to upload
     """
@@ -154,7 +176,7 @@ def upload_data_dir(
     upload_dir_to_cc_gcs(
         credentials_file,
         directory,
-        cc_resource_id=resource_id,
+        connector_id=connector_id,
     )
 
 

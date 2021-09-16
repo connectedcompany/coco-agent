@@ -1,4 +1,5 @@
 import hashlib
+import re
 from datetime import date
 
 import base62
@@ -21,6 +22,8 @@ GIT_PATH_ID_PREFIX = "gip"
 GIT_REPO_ID_PREFIX = "gir"
 GIT_USER_ID_PREFIX = "giu"
 
+CC_AGENT_SOURCE_TYPES = ["git", "github"]
+
 
 def encode(id_: str) -> str:
     if not id_:
@@ -29,6 +32,23 @@ def encode(id_: str) -> str:
     hashed = hashlib.sha256(cleartext.encode("utf-8")).hexdigest()
     truncated = int(hashed, base=16) >> (HASH_LENGTH_BITS - IDENTIFIER_LENGTH_BITS)
     return base62.encode(truncated)
+
+
+def split_connector_id(connector_id):
+    if not connector_id:
+        raise ValueError("Connector id is required")
+
+    matched = re.match(r"^([\w-]+)/([\w-]+)/([\w-]+)$", connector_id)
+    if not matched or not len(matched.groups()) == 3:
+        raise ValueError(
+            f"Invalid connector id format - expected <customer-id>/<source-type>/<source-ids>"
+        )
+
+    customer_id, source_type, source_id = matched.groups()
+    if source_type not in CC_AGENT_SOURCE_TYPES:
+        raise ValueError(f"Unsupported source type: {source_type}")
+
+    return customer_id, source_type, source_id
 
 
 def sensor(customer_id, source_type, source_id):

@@ -85,26 +85,6 @@ def test_upload_dir_to_gcs_subtree(mock_gcs):
         )
 
 
-def test_upload_dir_to_cc_gcs_bad_resource_ids():
-    # missing resource id
-    with raises(ValueError, match="Resource id is required"):
-        transfer.upload_dir_to_cc_gcs(
-            os.path.join("tests", "fake_creds.json"), "mydir", None
-        )
-
-    # missing parts
-    with raises(ValueError, match="Invalid resource id"):
-        transfer.upload_dir_to_cc_gcs(
-            os.path.join("tests", "fake_creds.json"), "mydir", "just one part"
-        )
-
-    # trailing slash
-    with raises(ValueError, match="Invalid resource id"):
-        transfer.upload_dir_to_cc_gcs(
-            os.path.join("tests", "fake_creds.json"), "mydir", "a/b/c/"
-        )
-
-
 @patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
 def test_upload_dir_to_cc_gcs(mock_gcs):
     test_data = {"something": "something else"}
@@ -121,7 +101,7 @@ def test_upload_dir_to_cc_gcs(mock_gcs):
         transfer.upload_dir_to_cc_gcs(
             os.path.join("tests", "fake_creds.json"),
             tmpdir,
-            "test-cust-id/source-type/source-id",
+            "test-cust-id/git/source-id",
         )
 
         # assert
@@ -129,6 +109,6 @@ def test_upload_dir_to_cc_gcs(mock_gcs):
         mock_gcs_inst.write_file.assert_called_with(
             os.path.join(tmpdir, "testfile.json"),
             "cc-upload-z7biauo6mvhvc",
-            bucket_file_name=f"uploads/source-type/source-id/{ts}/testfile.json",
+            bucket_file_name=f"uploads/git/source-id/{ts}/testfile.json",
             skip_bucket_check=True,
         )

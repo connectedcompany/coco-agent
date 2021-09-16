@@ -16,17 +16,8 @@ def _bucket_name_from_customer_id(customer_id):
     return f"cc-upload-{encoded}"
 
 
-def upload_dir_to_cc_gcs(credentials_file_path, dir_, cc_resource_id):
-    if not cc_resource_id:
-        raise ValueError("Resource id is required")
-
-    matched = re.match(r"^([\w-]+)/([\w-]+)/([\w-]+)$", cc_resource_id)
-    if not matched or not len(matched.groups()) == 3:
-        raise ValueError(
-            f"Invalid resource id format - expected <customer-id>/<source-type>/<source-ids>"
-        )
-
-    customer_id, source_type, source_id = matched.groups()
+def upload_dir_to_cc_gcs(credentials_file_path, dir_, connector_id):
+    customer_id, source_type, source_id = tm_id.split_connector_id(connector_id)
 
     bucket_name = _bucket_name_from_customer_id(customer_id)
     bucket_subpath = f"uploads/{source_type}/{source_id}/{datetime.utcnow().strftime('%y%m%d.%H%M%S')}"
