@@ -191,7 +191,7 @@ def test_upload(mock_gcs):
             ]
         )
         mock_gcs_inst.write_data.assert_called_with(
-            "",
+            ".",
             "cc-upload-3lvbl6fqqanq2r",
             name="upload_complete_marker",
             skip_bucket_check=True,
@@ -255,7 +255,7 @@ def test_extract_and_upload_single_command(mock_gcs):
         ]
     )
     mock_gcs_inst.write_data.assert_called_with(
-        "",
+        ".",
         "cc-upload-3lvbl6fqqanq2r",
         name="upload_complete_marker",
         skip_bucket_check=True,

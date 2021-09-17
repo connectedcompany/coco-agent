@@ -117,7 +117,7 @@ def test_repo_process_and_upload(
             ]
         )
         mock_gcs_inst.write_data.assert_called_with(
-            "",
+            ".",
             "cc-upload-3lvbl6fqqanq2r",
             name="upload_complete_marker",
             skip_bucket_check=True,
@@ -191,7 +191,7 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
             ]
         )
         mock_gcs_inst.write_data.assert_called_with(
-            "",
+            ".",
             "cc-upload-3lvbl6fqqanq2r",
             name="upload_complete_marker",
             skip_bucket_check=True,
