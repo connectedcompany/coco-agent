@@ -8,7 +8,8 @@ import coco_agent
 from coco_agent.remote.logging import apply_log_config
 from coco_agent.remote.transfer import upload_dir_to_cc_gcs
 from coco_agent.services import tm_id
-from coco_agent.services.git import ingest_repo_to_jsonl
+from coco_agent.services.git import ingest_repo_to_jsonl, update_repo
+from git import repo
 
 CLI_LOG_LEVELS = ["debug", "info", "warn", "error"]
 CLI_DEFAULT_LOG_LEVEL = "info"
@@ -70,6 +71,11 @@ def extract() -> str:
 )
 @click.option("--branch", default="master", help="Branch / rev spec")
 @click.option(
+    "--git-pull-latest/--no-git-pull-latest",
+    default=False,
+    help="Pull latest changes for given repo + branch",
+)
+@click.option(
     "--ignore-errors",
     is_flag=True,
     default=False,
@@ -95,6 +101,7 @@ def extract_git(
     connector_id,
     output_dir,
     branch,
+    git_pull_latest,
     ignore_errors,
     use_non_native_repo_db,
     log_level,
@@ -121,6 +128,9 @@ def extract_git(
     while True:
         start_time = time.time()
         temp_dir = None
+
+        if git_pull_latest:
+            update_repo(repo_dir=repo_path, branch=branch)
 
         try:
             if upload:
@@ -153,6 +163,7 @@ def extract_git(
         if not repeat_interval_sec or repeat_interval_sec <= 0:
             break
 
+        # this is also used as a hook for testing - e.g. simulating a keyboardinterrupt
         maybe_sleep(start_time, repeat_interval_sec)
 
 
@@ -198,6 +209,33 @@ def upload_data_dir(
         directory,
         connector_id=connector_id,
     )
+
+
+@cli.group("update")
+def update() -> str:
+    """Update a resource"""
+    pass
+
+
+@update.command("git-repo")
+@click.argument("repo_path")
+@click.option("--log-level", **CLI_LOG_LEVEL_OPT_KWARGS)
+@click.option("--log-to-file/--no-log-to-file", required=False, default=False)
+@click.argument("branch")
+def update_local_git(log_level, log_to_file, branch, repo_path) -> str:
+    """Update git repo by pulling the latest changes for a given branch.
+    Useful for testing that updates work.
+
+    NOTE that the repo is assumed to have no local changes that would require
+    a merge - just cloned for the purpose of data extraction.
+
+    REPO_PATH   - the file system path to repo to update
+    BRANCH      - the branch to pull changes for
+    """
+
+    _setup_logging(log_level, log_to_file, log_to_cloud=False, credentials_file=None)
+
+    update_repo(repo_dir=repo_path, branch=branch)
 
 
 # --- setup / admin stuff ---

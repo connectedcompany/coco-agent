@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
@@ -31,6 +32,25 @@ def get_path(objpath):
 
     groups = ["start", "a", "end"]
     return "/".join([matches.group(g) for g in groups if matches.group(g)])
+
+
+def update_repo(repo_dir, branch):
+    def run_cmd(cmd):
+        assert isinstance(cmd, (list, tuple)), "command must be a list or tuple"
+        log.info(f"Running command {' ' .join(cmd)} in {repo_dir}")
+
+        result = subprocess.run(
+            cmd, cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        log.info(f"Command output:\n{result.stdout.decode('utf-8')}")
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Command exited with non-zero status code {result.returncode}"
+            )
+
+    run_cmd(["git", "checkout", branch])
+    run_cmd(["git", "pull"])
 
 
 def check_repo(repo):
