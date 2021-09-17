@@ -9,6 +9,8 @@ from coco_agent.services.gcs import GCSClient
 
 log = logging.getLogger(__name__)
 
+UPLOAD_COMPLETE_MARKER_FILENAME = "upload_complete_marker"
+
 
 def _bucket_name_from_customer_id(customer_id):
     # lower() since bucket names must have lowercase alphanumerics only
@@ -27,6 +29,7 @@ def upload_dir_to_cc_gcs(credentials_file_path, dir_, connector_id):
         dir_=dir_,
         bucket_name=bucket_name,
         bucket_subpath=bucket_subpath,
+        write_complete_marker=True,
     )
 
 
@@ -35,6 +38,7 @@ def upload_dir_to_gcs(
     dir_,
     bucket_name,
     bucket_subpath=None,
+    write_complete_marker=False,
 ):
     bucket_subpath = (bucket_subpath.strip("/") + "/") if bucket_subpath else ""
 
@@ -58,6 +62,14 @@ def upload_dir_to_gcs(
             local_file_path,
             bucket_name,
             bucket_file_name=dest_file_name,
+            skip_bucket_check=True,
+        )
+
+    if write_complete_marker:
+        gcs.write_data(
+            "",
+            bucket_name,
+            bucket_file_name=UPLOAD_COMPLETE_MARKER_FILENAME,
             skip_bucket_check=True,
         )
 

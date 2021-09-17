@@ -116,6 +116,12 @@ def test_repo_process_and_upload(
                 for f in os.listdir(out_path)
             ]
         )
+        mock_gcs_inst.write_data.assert_called_with(
+            "",
+            "cc-upload-3lvbl6fqqanq2r",
+            bucket_file_name="upload_complete_marker",
+            skip_bucket_check=True,
+        )
 
 
 @mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
@@ -183,4 +189,10 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
                 )
                 for _ in range(3)
             ]
+        )
+        mock_gcs_inst.write_data.assert_called_with(
+            "",
+            "cc-upload-3lvbl6fqqanq2r",
+            bucket_file_name="upload_complete_marker",
+            skip_bucket_check=True,
         )
