@@ -35,7 +35,7 @@ def _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file):
 
 def maybe_sleep(start_time, interval_sec):
     sleep_interval = max(0, interval_sec - (time.time() - start_time))
-    log.info(f"Sleeping for {int(sleep_interval)} sec until next run")
+    log.info(f"--- Sleeping for {int(sleep_interval)} sec until next run ---")
     time.sleep(sleep_interval)
 
 

@@ -34,25 +34,6 @@ def get_path(objpath):
     return "/".join([matches.group(g) for g in groups if matches.group(g)])
 
 
-def update_repo(repo_dir, branch):
-    def run_cmd(cmd):
-        assert isinstance(cmd, (list, tuple)), "command must be a list or tuple"
-        log.info(f"Running command {' ' .join(cmd)} in {repo_dir}")
-
-        result = subprocess.run(
-            cmd, cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-        )
-        log.info(f"Command output:\n{result.stdout.decode('utf-8')}")
-
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"Command exited with non-zero status code {result.returncode}"
-            )
-
-    run_cmd(["git", "checkout", branch])
-    run_cmd(["git", "pull"])
-
-
 def check_repo(repo):
     # check refs
     num_refs = repo.refs
@@ -428,3 +409,25 @@ def ingest_repo_to_jsonl(
         ignore_errors=ignore_errors,
         use_non_native_repo_db=use_non_native_repo_db,
     )
+
+
+def update_repo(repo_dir, branch):
+    """Do a git pull on given repo clone without local changes"""
+
+    def run_cmd(cmd):
+        assert isinstance(cmd, (list, tuple)), "command must be a list or tuple"
+        log.info(f"Running command {' ' .join(cmd)} in {repo_dir}")
+
+        result = subprocess.run(
+            cmd, cwd=repo_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        output = result.stdout.decode("utf-8")
+        log.debug(f"Command output:\n{output}")
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Command exited with non-zero status code {result.returncode} - output was:\n{output}"
+            )
+
+    run_cmd(["git", "checkout", branch])
+    run_cmd(["git", "pull"])

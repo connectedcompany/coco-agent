@@ -293,3 +293,21 @@ def test_ingest_repo_to_jsonl(mock_name_getter):
                 assert data[0]["tm_id"].startswith("gdf")
             else:
                 pytest.fail("unexpected file type")
+
+
+def test_update_repo():
+    repo_url = "https://github.com/connectedcompany/coco-agent.git"
+    repo_name = repo_url.split("/")[-1]
+    branch = "master"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # setup
+        repo_path = os.path.join(tmpdir, repo_name)
+        os.mkdir(repo_path)
+
+        gitpython.Repo.clone_from(repo_url, repo_path)
+
+        # act
+        git.update_repo(repo_dir=os.path.join(tmpdir, repo_name), branch=branch)
+
+    # no exception from error status implies success
