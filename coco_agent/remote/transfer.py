@@ -69,7 +69,7 @@ def upload_dir_to_gcs(
         gcs.write_data(
             "",
             bucket_name,
-            bucket_file_name=UPLOAD_COMPLETE_MARKER_FILENAME,
+            name=UPLOAD_COMPLETE_MARKER_FILENAME,
             skip_bucket_check=True,
         )
 
