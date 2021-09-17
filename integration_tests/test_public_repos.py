@@ -179,7 +179,6 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
         assert result.exit_code == 1, result.output
 
         # check upload
-        ts = datetime.utcnow().strftime("%y%m%d.%H%M%S")
         mock_gcs_inst.write_file.call_count == 3
         mock_gcs_inst.write_file.assert_has_calls(
             [
@@ -197,6 +196,8 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
         mock_gcs_inst.write_data.assert_called_with(
             ".",
             "cc-upload-3lvbl6fqqanq2r",
-            name=StringMatches(r"uploads/git/test/\d{6}\.\d{6}/upload_complete_marker"),
+            name=StringMatches(
+                r"uploads/git/numpyro/\d{6}\.\d{6}/upload_complete_marker"
+            ),
             skip_bucket_check=True,
         )
