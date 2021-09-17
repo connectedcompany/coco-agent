@@ -24,9 +24,19 @@ class GCSClient:
         return blob.download_as_string(self.client).decode()
 
     def write_data(
-        self, data: str, bucket_name: str, name: str, content_type: str = None
+        self,
+        data: str,
+        bucket_name: str,
+        name: str,
+        content_type: str = None,
+        skip_bucket_check=False,
     ):
-        blob = Blob(name, self.get_bucket(bucket_name))
+        # if we call client.get_bucket, then we need more than objectCreate role (we need read as well)
+        if skip_bucket_check:
+            blob = Blob(name, self.client.bucket(bucket_name.lower()))
+        else:
+            blob = Blob(name, self.get_or_create_bucket(bucket_name))
+
         blob.upload_from_string(data, content_type=content_type)
 
     def write_file(

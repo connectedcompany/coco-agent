@@ -9,7 +9,6 @@ from coco_agent.remote.logging import apply_log_config
 from coco_agent.remote.transfer import upload_dir_to_cc_gcs
 from coco_agent.services import tm_id
 from coco_agent.services.git import ingest_repo_to_jsonl, update_repo
-from git import repo
 
 CLI_LOG_LEVELS = ["debug", "info", "warn", "error"]
 CLI_DEFAULT_LOG_LEVEL = "info"
