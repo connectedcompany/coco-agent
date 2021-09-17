@@ -12,12 +12,16 @@ from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli, maybe_sleep
 from coco_agent.services.gcs import GCSClient
 
-
 # TODO: move out if used more widely
 # Source: https://stackoverflow.com/questions/16976264/unittest-mock-asserting-partial-match-for-method-argument
-class AnyStringWith(str):
+
+
+class StringMatches(str):
     def __eq__(self, other):
-        return self in other
+        return re.match(self, other)
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 @mock.patch("builtins.print")
@@ -190,11 +194,17 @@ def test_upload(mock_gcs):
                 for f in os.listdir(tmpdir)
             ]
         )
-        mock_gcs_inst.write_data.assert_called_with(
-            ".",
-            "cc-upload-3lvbl6fqqanq2r",
-            name="upload_complete_marker",
-            skip_bucket_check=True,
+        mock_gcs_inst.write_data.assert_has_calls(
+            [
+                mock.call(
+                    ".",
+                    "cc-upload-3lvbl6fqqanq2r",
+                    name=StringMatches(
+                        r"uploads/git/test/\d{6}\.\d{6}/upload_complete_marker"
+                    ),
+                    skip_bucket_check=True,
+                )
+            ]
         )
 
 
@@ -248,7 +258,9 @@ def test_extract_and_upload_single_command(mock_gcs):
             mock.call(
                 mock.ANY,
                 "cc-upload-3lvbl6fqqanq2r",
-                bucket_file_name=AnyStringWith(f"uploads/git/test/{ts[:9]}"),
+                bucket_file_name=StringMatches(
+                    r"uploads/git/test/\d{6}\.\d{6}/.*?\.jsonl"
+                ),
                 skip_bucket_check=True,
             )
             for f in range(3)
@@ -257,7 +269,7 @@ def test_extract_and_upload_single_command(mock_gcs):
     mock_gcs_inst.write_data.assert_called_with(
         ".",
         "cc-upload-3lvbl6fqqanq2r",
-        name="upload_complete_marker",
+        name=StringMatches(r"uploads/git/test/\d{6}\.\d{6}/upload_complete_marker"),
         skip_bucket_check=True,
     )
 

@@ -69,8 +69,10 @@ def upload_dir_to_gcs(
         gcs.write_data(
             ".",
             bucket_name,
-            name=UPLOAD_COMPLETE_MARKER_FILENAME,
+            name=bucket_subpath + UPLOAD_COMPLETE_MARKER_FILENAME,
             skip_bucket_check=True,
         )
 
-    log.info(f"Uploaded {len(source_files)} file(s) to {bucket_name}")
+    log.info(
+        f"Uploaded {len(source_files)} file(s) {'and completion marker file ' if write_complete_marker else ''}to {bucket_name}"
+    )
