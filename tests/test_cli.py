@@ -12,10 +12,9 @@ from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli, maybe_sleep
 from coco_agent.services.gcs import GCSClient
 
+
 # TODO: move out if used more widely
 # Source: https://stackoverflow.com/questions/16976264/unittest-mock-asserting-partial-match-for-method-argument
-
-
 class StringMatches(str):
     def __eq__(self, other):
         return re.match(self, other)

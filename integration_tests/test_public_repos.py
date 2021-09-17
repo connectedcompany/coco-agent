@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 from datetime import datetime
 from unittest import mock
@@ -12,9 +13,12 @@ from coco_agent.services.gcs import GCSClient
 from pytest import mark
 
 
-class AnyStringStartingWith(str):
+class StringMatches(str):
     def __eq__(self, other):
-        return other.startswith(self)
+        return re.match(self, other)
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 @mark.parametrize(
@@ -182,8 +186,8 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
                 mock.call(
                     mock.ANY,
                     "cc-upload-3lvbl6fqqanq2r",
-                    bucket_file_name=AnyStringStartingWith(
-                        f"uploads/git/numpyro/{ts[:7]}"
+                    bucket_file_name=StringMatches(
+                        r"uploads/git/numpyro/\d{6}\.\d{6}/.*?\.jsonl"
                     ),
                     skip_bucket_check=True,
                 )
@@ -193,6 +197,6 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
         mock_gcs_inst.write_data.assert_called_with(
             ".",
             "cc-upload-3lvbl6fqqanq2r",
-            name="upload_complete_marker",
+            name=StringMatches(r"uploads/git/test/\d{6}\.\d{6}/upload_complete_marker"),
             skip_bucket_check=True,
         )
