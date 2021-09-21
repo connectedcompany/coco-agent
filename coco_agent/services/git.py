@@ -19,6 +19,7 @@ GIT_SOURCE_TYPE = "git"
 GIT_COMMIT_TYPE = "git_commits"
 GIT_COMMIT_DIFF_TYPE = "git_commit_diffs"
 GIT_REPO_TYPE = "git_repos"
+LOG_HEARTBEAT_COMMIT_BATCH_SIZE = 1000
 
 log = logging.getLogger(__name__)
 
@@ -238,8 +239,8 @@ class GitRepoExtractor:
         self, repo, repo_tm_id, rev, fallback_rev=None, ignore_errors=False
     ):
         for idx, commit_obj in enumerate(repo_commits_iter(repo, rev, fallback_rev)):
-            if idx and not (idx % 100):
-                log.debug(f"{idx} commits done - still working ...")
+            if idx and not (idx % LOG_HEARTBEAT_COMMIT_BATCH_SIZE):
+                log.info(f"{idx} commits done - still working ...")
 
             try:
                 log.debug(f"Processing commit {commit_obj.hexsha}")
