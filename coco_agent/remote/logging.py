@@ -1,5 +1,7 @@
 import json
 import logging
+import sys
+import threading
 
 import coco_agent
 import google.cloud.logging
@@ -12,6 +14,36 @@ LOG_FORMAT = (
     "%(asctime)s.%(msecs)03d {%(filename)s:%(lineno)d} %(levelname)s: %(message)s"
 )
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+# pre-python 3.8 workaround for catching in-thread unhandled exceptions - 3.8 has threading.excepthook()
+def install_thread_excepthook():
+    """
+        Workaround for sys.excepthook thread bug
+        From
+    http://spyced.blogspot.com/2007/06/workaround-for-sysexcepthook-bug.html
+
+    (https://sourceforge.net/tracker/?func=detail&atid=105470&aid=1230540&group_id=5470).
+        Call once from __main__ before creating any threads.
+        If using psyco, call psyco.cannotcompile(threading.Thread.run)
+        since this replaces a new-style class method.
+    """
+    init_old = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+        init_old(self, *args, **kwargs)
+        run_old = self.run
+
+        def run_with_except_hook(*args, **kw):
+            try:
+                run_old(*args, **kw)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except:
+                sys.excepthook(*sys.exc_info())
+
+        self.run = run_with_except_hook
+
+    threading.Thread.__init__ = init
 
 
 def set_up_cloud_logging(

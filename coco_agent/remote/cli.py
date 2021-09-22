@@ -5,7 +5,7 @@ import time
 
 import click
 import coco_agent
-from coco_agent.remote.logging import apply_log_config
+from coco_agent.remote.logging import apply_log_config, install_thread_excepthook
 from coco_agent.remote.transfer import upload_dir_to_cc_gcs
 from coco_agent.services import tm_id
 from coco_agent.services.git import ingest_repo_to_jsonl, update_repo
@@ -19,6 +19,19 @@ CLI_LOG_LEVEL_OPT_KWARGS = dict(
 )
 
 log = logging.getLogger(coco_agent.__name__)  # don't use "__main__", misses log config
+
+# workaround to catch unhandled exceptions in threads (e.g. google logging) - so we can log them!
+# source: https://stackoverflow.com/a/16993115/1933315
+def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    log.error("Background exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+install_thread_excepthook()
+sys.excepthook = handle_uncaught_exception
 
 
 def _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file):
