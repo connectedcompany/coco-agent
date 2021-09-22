@@ -65,7 +65,9 @@ def _diff_size(diff):
         return None
     except ValueError as e:
         if re.match(r"^SHA .*\s*could not be ", str(e).strip()):
-            log.info(f"Skipping failed diff size lookup: {str(e)}")
+            # Was log.info, turning down due to log noise - lots of messages like
+            # INFO: Skipping failed diff size lookup: SHA b'<hexsha>' could not be resolved, git returned: b'<same hexsha> missing'
+            log.debug(f"Skipping failed diff size lookup: {str(e)}")
             return None
         raise
 
