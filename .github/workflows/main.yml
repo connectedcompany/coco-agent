@@ -31,7 +31,7 @@ jobs:
           source venv/bin/activate
           pip install -U pip # without latest pip, grpcio, cryptography et al. tage ages
           pip install -r dev_requirements.txt
-          pip install -r requirements.txt
+          pip install --no-cache-dir -r requirements.txt
 
       - name: Unit tests
         run: |
