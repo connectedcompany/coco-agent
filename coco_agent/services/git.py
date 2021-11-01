@@ -165,6 +165,8 @@ class GitRepoExtractor:
         repo_link_url=None,
         use_repo_link_url_from_remote=False,
         use_non_native_repo_db=False,
+        start_date=None,
+        end_date=None,
     ) -> None:
         self.clone_url_or_path = clone_url_or_path
         if not sensor and (not customer_id or not source_id):
@@ -188,6 +190,8 @@ class GitRepoExtractor:
         self.repo_link_url = repo_link_url
         self.use_repo_link_from_remote = use_repo_link_url_from_remote
         self.use_non_native_repo_db = use_non_native_repo_db
+        self.start_date = start_date
+        self.end_date = end_date
 
     def generate_repo_id_from_remote_name(self, repo):
         repo_name = get_repo_name_from_remote(repo)
@@ -238,10 +242,28 @@ class GitRepoExtractor:
 
             yield stats
 
+    def _date_filter_predicate(self, commit_obj):
+        # Using committed_date over authored_date as in general it may be more recent, e.g if
+        # commits came from a different source - https://stackoverflow.com/questions/11856983/why-git-authordate-is-different-from-commitdate
+
+        committed_date_epoch = getattr(commit_obj, "committed_date")
+
+        return (
+            self.start_date is None
+            or int(self.start_date.strftime("%s")) >= committed_date_epoch
+        ) and (
+            self.end_date is None
+            or int(self.end_date.strftime("%s")) < committed_date_epoch
+        )
+
     def extract_commits_and_history(
         self, repo, repo_tm_id, rev, fallback_rev=None, ignore_errors=False
     ):
-        for idx, commit_obj in enumerate(repo_commits_iter(repo, rev, fallback_rev)):
+        # filter by date as required
+        for idx, commit_obj in filter(
+            lambda x: self._date_filter_predicate(x[1]),
+            enumerate(repo_commits_iter(repo, rev, fallback_rev)),
+        ):
             if idx and not (idx % LOG_HEARTBEAT_COMMIT_BATCH_SIZE):
                 log.info(f"{idx} commits done - still working ...")
 
@@ -342,6 +364,8 @@ def ingest_and_store_repo(
     ignore_errors=False,
     use_non_native_repo_db=False,
     commits_batch_size=DEFAULT_GIT_COMMIT_WRITE_BATCH_SIZE,
+    start_date=None,
+    end_date=None,
 ):
     extractor = GitRepoExtractor(
         customer_id=customer_id,
@@ -351,6 +375,8 @@ def ingest_and_store_repo(
         use_repo_link_url_from_remote=True,
         forced_repo_name=forced_repo_name,
         use_non_native_repo_db=use_non_native_repo_db,
+        start_date=start_date,
+        end_date=end_date,
     )
 
     items_gen = extractor(
@@ -441,6 +467,8 @@ def ingest_repo_to_jsonl(
         forced_repo_name=forced_repo_name,
         ignore_errors=ignore_errors,
         use_non_native_repo_db=use_non_native_repo_db,
+        start_date=start_date,
+        end_date=end_date,
     )
 
 

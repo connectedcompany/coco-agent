@@ -2,9 +2,11 @@ import logging
 import sys
 import tempfile
 import time
+from datetime import datetime, timedelta
 
 import click
 import coco_agent
+import dateutil.parser as date_parser
 from coco_agent.remote.logging import apply_log_config, install_thread_excepthook
 from coco_agent.remote.transfer import upload_dir_to_cc_gcs
 from coco_agent.services import tm_id
@@ -32,6 +34,40 @@ def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
 
 install_thread_excepthook()
 sys.excepthook = handle_uncaught_exception
+
+
+def _date_delta_as_datetime(_date=None, delta=timedelta(days=0)) -> datetime:
+    if _date is None:
+        _date = datetime.utcnow().date()
+    _date = _date + delta
+    return datetime.combine(_date, datetime.min.time())
+
+
+def date_parameter(value):
+    if isinstance(value, datetime):
+        return value
+
+    if value.lower() == "today":
+        return _date_delta_as_datetime()
+    if value.lower() == "yesterday":
+        return _date_delta_as_datetime(delta=timedelta(days=-1))
+    if value.lower() == "tomorrow":
+        return _date_delta_as_datetime(delta=timedelta(days=1))
+    if value.lstrip("-+").isdigit():
+        return _date_delta_as_datetime(delta=timedelta(days=int(value)))
+
+    try:
+        return date_parser.parse(value)
+    except ValueError:
+        raise ValueError(f"Argument {value} should be YYYY-MM-DD")
+
+
+def date_parameter_help(param_desc, required=False):
+    return dict(
+        type=date_parameter,
+        required=required,
+        help=f"{param_desc} as yyyy-dd-mm, integer days offset from today, or one of 'yesterday, today, tomorrow'",
+    )
 
 
 def _setup_logging(log_level, log_to_file, log_to_cloud, credentials_file):
@@ -108,6 +144,8 @@ def extract() -> str:
 @click.option("--forced-repo-name", help="Name to set if one can't be read from origin")
 @click.option("--upload/--no-upload", default=False, help="Upload to CC once extracted")
 @click.option("--repeat-interval-sec", type=int, required=False)
+@click.option("--start-date", **date_parameter_help("Start date"))
+@click.option("--end-date", **date_parameter_help("End date"))
 @click.argument("repo_path")
 def extract_git(
     connector_id,
@@ -124,6 +162,8 @@ def extract_git(
     upload,
     repeat_interval_sec,
     repo_path,
+    start_date,
+    end_date,
 ) -> str:
     """Extract git repo to an output dir. JSONL is currently supported.
 
@@ -158,6 +198,8 @@ def extract_git(
                 forced_repo_name=forced_repo_name,
                 ignore_errors=ignore_errors,
                 use_non_native_repo_db=use_non_native_repo_db,
+                start_date=start_date,
+                end_date=end_date,
             )
 
             if upload:
