@@ -38,7 +38,7 @@ where
 
 By default, output is written to the `out` directory.
 
-For additional options, see `./coco-agent extract git-repo --help`
+For additional options, including specifying date ranges, see `./coco-agent extract git-repo --help`
 
 #### Additional data sources
 
