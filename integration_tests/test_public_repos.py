@@ -25,25 +25,25 @@ class StringMatches(str):
     "repo_url, repo_name, branch_name, use_non_native_repo_db, min_commits",
     [
         # small-ish data repo
-        # ("https://github.com/pyro-ppl/numpyro.git", "numpyro", "master", False, 800),
+        ("https://github.com/pyro-ppl/numpyro.git", "numpyro", "master", False, 800),
         #  repo with head / master issues
         ("https://github.com/jbrowncfa/Cryptobomb", "Cryptobomb", "master", True, -1),
         #  large app repo(s), non-native db
-        # (
-        #     "https://github.com/apache/incubator-superset.git",
-        #     "superset",
-        #     "master",
-        #     True,
-        #     6000,
-        # ),
-        # # older tool repo, native db
-        # (
-        #     "https://github.com/findbugsproject/findbugs.git",
-        #     "findbugs",
-        #     "master",
-        #     False,
-        #     10000,
-        # ),
+        (
+            "https://github.com/apache/incubator-superset.git",
+            "superset",
+            "master",
+            True,
+            6000,
+        ),
+        # older tool repo, native db
+        (
+            "https://github.com/findbugsproject/findbugs.git",
+            "findbugs",
+            "master",
+            False,
+            10000,
+        ),
     ],
 )
 @mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
@@ -202,3 +202,46 @@ def test_repo_process_and_upload_repeatedly_single_command(mock_gcs):
             ),
             skip_bucket_check=True,
         )
+
+
+def test_repo_process_date_range():
+    repo_url = "https://github.com/pyro-ppl/numpyro.git"
+    repo_name = "numpyro"
+
+    connector_id = "test/git/numpyro"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # setup
+        repo_path = os.path.join(tmpdir, repo_name)
+        out_path = os.path.join(tmpdir, repo_name + "-out")
+        os.mkdir(repo_path)
+        os.mkdir(out_path)
+
+        gitpython.Repo.clone_from(repo_url, repo_path)
+
+        # extract repo
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "extract",
+                "git-repo",
+                f"--connector-id={connector_id}",
+                "--output-dir=" + out_path,
+                "--log-level=info",
+                "--no-log-to-file",
+                "--start-date=2021-01-01",
+                "--end-date=2021-02-01",
+                repo_path,
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0, result.output
+
+        commits_file = [
+            f for f in os.listdir(out_path) if f.endswith("git_commits.jsonl")
+        ][0]
+        assert commits_file
+
+        commits = srsly.read_jsonl(os.path.join(out_path, commits_file))
+        assert 30 > len(list(commits)) > 20
