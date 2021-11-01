@@ -2,6 +2,7 @@
 __pycache__
 build
 dist
+mprofile_*.dat
 out
 venv
 *.log
