@@ -19,6 +19,7 @@ GIT_SOURCE_TYPE = "git"
 GIT_COMMIT_TYPE = "git_commits"
 GIT_COMMIT_DIFF_TYPE = "git_commit_diffs"
 GIT_REPO_TYPE = "git_repos"
+DEFAULT_GIT_COMMIT_WRITE_BATCH_SIZE = 100
 LOG_HEARTBEAT_COMMIT_BATCH_SIZE = 1000
 
 log = logging.getLogger(__name__)
@@ -279,7 +280,10 @@ class GitRepoExtractor:
                     raise
 
     def __call__(self, rev, fallback_rev=None, ignore_errors=False):
-        """Extractor for commits and diffs for a git repo. Emits 2-tuples of (rec type, record)"""
+        """
+        Extractor for commits and diffs for a git repo. Emits 2-tuples of (rec type, record),
+        Repo tuple first, followed by commits
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             # see https://github.com/gitpython-developers/GitPython/issues/642
             repo_kwargs = dict(odbt=git.db.GitDB) if self.use_non_native_repo_db else {}
@@ -302,16 +306,6 @@ class GitRepoExtractor:
             # repo sanity checks
             check_repo(repo)
 
-            # emit commits
-            for commit in self.extract_commits_and_history(
-                repo,
-                repo_tm_id,
-                rev=rev,
-                fallback_rev=fallback_rev,
-                ignore_errors=ignore_errors,
-            ):
-                yield GIT_COMMIT_TYPE, commit
-
             # emit repo
             repo_link_url = self.repo_link_url
             if not repo_link_url and self.use_repo_link_from_remote:
@@ -326,6 +320,16 @@ class GitRepoExtractor:
                 },
             )
 
+            # emit commits
+            for commit in self.extract_commits_and_history(
+                repo,
+                repo_tm_id,
+                rev=rev,
+                fallback_rev=fallback_rev,
+                ignore_errors=ignore_errors,
+            ):
+                yield GIT_COMMIT_TYPE, commit
+
 
 def ingest_and_store_repo(
     customer_id,
@@ -337,6 +341,7 @@ def ingest_and_store_repo(
     forced_repo_name=None,
     ignore_errors=False,
     use_non_native_repo_db=False,
+    commits_batch_size=DEFAULT_GIT_COMMIT_WRITE_BATCH_SIZE,
 ):
     extractor = GitRepoExtractor(
         customer_id=customer_id,
@@ -348,33 +353,49 @@ def ingest_and_store_repo(
         use_non_native_repo_db=use_non_native_repo_db,
     )
 
-    commits, repos = [], []
-    for type_, item in extractor(
+    items_gen = extractor(
         rev=branch, fallback_rev=fallback_branch, ignore_errors=ignore_errors
-    ):
-        if type_ == GIT_COMMIT_TYPE:
-            commits.append(item)
-        elif type_ == GIT_REPO_TYPE:
-            repos.append(item)
-        else:
-            raise ValueError(f"Unexpected item type: {type_}")
+    )
 
-    assert len(repos) < 2, f"Did not expect more than one repo record"
-    repo = repos[0]
+    # Consume repo
+    type_, repo = next(items_gen)
+    assert (
+        type_ == GIT_REPO_TYPE
+    ), f"Expected first extracted item to be a repo, but was {type_}"
+    store_fn(GIT_REPO_TYPE, repo["tm_id"], [repo])
 
-    # sort commits first, to ease dumpoing - for now, memory usage one repo at a time isn't a concern
-    commits = sorted(commits, key=lambda c: c["authored_date"])
-    commit_diffs = []
-    for commit in commits:
-        commit_diffs.extend(commit["diffs"])
-        del commit["diffs"]
+    # consume commits im batches, and count them for reporting
+    num_commits, num_commit_diffs = 0, 0
 
-    store_fn(GIT_REPO_TYPE, repo["tm_id"], repos)
-    store_fn(GIT_COMMIT_TYPE, repo["tm_id"], commits)
-    store_fn(GIT_COMMIT_DIFF_TYPE, repo["tm_id"], commit_diffs)
+    def store_commits_batch(repo_id, commits):
+        nonlocal num_commits, num_commit_diffs
+        if not len(commits):
+            return
+
+        commit_diffs = []
+        num_commits += len(commits)
+        for commit in commits:
+            commit_diffs.extend(commit["diffs"])
+            num_commit_diffs += len(commit["diffs"])
+            del commit["diffs"]
+
+        store_fn(GIT_COMMIT_TYPE, repo_id, commits)
+        store_fn(GIT_COMMIT_DIFF_TYPE, repo_id, commit_diffs)
+
+    commits_batch = []
+    for type_, item in items_gen:
+        if type_ != GIT_COMMIT_TYPE:
+            raise ValueError(f"Expected commit items, got {type_}")
+
+        commits_batch.append(item)
+        if len(commits_batch) >= commits_batch_size:
+            store_commits_batch(repo["tm_id"], commits_batch)
+            commits_batch = []
+
+    store_commits_batch(repo["tm_id"], commits_batch)
 
     log.info(
-        f"Ingested commits for repo {repo['name']}: {len(commits)} commit(s), {len(commit_diffs)} diff(s)"
+        f"Ingested commits for repo {repo['name']}: {num_commits} commit(s), {num_commit_diffs} diff(s)"
     )
 
 
@@ -388,16 +409,25 @@ def ingest_repo_to_jsonl(
     forced_repo_name=None,
     ignore_errors=False,
     use_non_native_repo_db=False,
+    start_date=None,
+    end_date=None,
 ):
     output_dir = output_dir or os.path.join(".", "out")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    # in order to support batched writes, jsonl writer overwrites any existing files
+    # at the beginning of the run, then appends
+    appendable_file_paths = set()
+
     def jsonl_writer(type_, id_, iter):
-        path = os.path.join(
-            output_dir,
-            generate_git_export_file_name("jsonl", customer_id, source_id, id_, type_),
+        output_filename = generate_git_export_file_name(
+            "jsonl", customer_id, source_id, id_, type_
         )
-        srsly.write_jsonl(path, iter)
+        path = os.path.join(output_dir, output_filename)
+        is_path_appendable = path in appendable_file_paths
+
+        srsly.write_jsonl(path, iter, append=is_path_appendable)
+        appendable_file_paths.add(path)
 
     ingest_and_store_repo(
         customer_id,

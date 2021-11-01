@@ -25,25 +25,25 @@ class StringMatches(str):
     "repo_url, repo_name, branch_name, use_non_native_repo_db, min_commits",
     [
         # small-ish data repo
-        ("https://github.com/pyro-ppl/numpyro.git", "numpyro", "master", False, 800),
+        # ("https://github.com/pyro-ppl/numpyro.git", "numpyro", "master", False, 800),
         #  repo with head / master issues
         ("https://github.com/jbrowncfa/Cryptobomb", "Cryptobomb", "master", True, -1),
         #  large app repo(s), non-native db
-        (
-            "https://github.com/apache/incubator-superset.git",
-            "superset",
-            "master",
-            True,
-            6000,
-        ),
-        # older tool repo, native db
-        (
-            "https://github.com/findbugsproject/findbugs.git",
-            "findbugs",
-            "master",
-            False,
-            10000,
-        ),
+        # (
+        #     "https://github.com/apache/incubator-superset.git",
+        #     "superset",
+        #     "master",
+        #     True,
+        #     6000,
+        # ),
+        # # older tool repo, native db
+        # (
+        #     "https://github.com/findbugsproject/findbugs.git",
+        #     "findbugs",
+        #     "master",
+        #     False,
+        #     10000,
+        # ),
     ],
 )
 @mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
@@ -81,13 +81,14 @@ def test_repo_process_and_upload(
         )
         assert result.exit_code == 0, result.output
 
-        #  check commits
-        commits_file = [
-            f for f in os.listdir(out_path) if f.endswith("git_commits.jsonl")
-        ][0]
-        assert commits_file
-        commits = srsly.read_jsonl(os.path.join(out_path, commits_file))
-        assert len(list(commits)) > min_commits
+        #  check commits, if we're expecting some
+        if min_commits > -1:
+            commits_file = [
+                f for f in os.listdir(out_path) if f.endswith("git_commits.jsonl")
+            ][0]
+            assert commits_file
+            commits = srsly.read_jsonl(os.path.join(out_path, commits_file))
+            assert len(list(commits)) > min_commits
 
         # upload
         mock_gcs_inst = mock.MagicMock()

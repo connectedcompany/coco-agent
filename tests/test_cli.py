@@ -8,8 +8,10 @@ import coco_agent
 import pytest
 import srsly
 from click.testing import CliRunner
+from coco_agent import services
 from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli, maybe_sleep
+from coco_agent.services import git
 from coco_agent.services.gcs import GCSClient
 
 
@@ -59,6 +61,10 @@ def test_git_extract():
 
         files = [f for f in os.listdir(tmpdir)]
         assert len(files) == 3
+
+        commits_file = [f for f in os.listdir(tmpdir) if "git_commits" in f][0]
+        stored_commits = list(srsly.read_jsonl(os.path.join(tmpdir, commits_file)))
+        assert len(stored_commits) > git.DEFAULT_GIT_COMMIT_WRITE_BATCH_SIZE
 
 
 def test_git_extract_repeatedly():
@@ -128,18 +134,9 @@ def test_git_extract_ignore_errors(mock_load_diffs):
         )
         assert result.exit_code == 0, result.output
 
-        commits_file = [f for f in os.listdir(tmpdir) if "git_commits" in f][0]
-        assert (
-            list(
-                srsly.read_jsonl(
-                    os.path.join(
-                        tmpdir,
-                        commits_file,
-                    )
-                )
-            )
-            == []
-        )
+        # we should have a repos file, but not a commits file
+        assert len([f for f in os.listdir(tmpdir) if git.GIT_REPO_TYPE in f]) == 1
+        assert not [f for f in os.listdir(tmpdir) if git.GIT_COMMIT_TYPE in f]
 
 
 @mock.patch(".".join([transfer.__name__, GCSClient.__name__]), autospec=True)
