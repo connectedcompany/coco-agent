@@ -1,6 +1,7 @@
 import os
 import tempfile
 from collections import defaultdict
+from datetime import date
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import git as gitpython
@@ -222,6 +223,41 @@ def test_repo_extractor():
             assert diff["commit_id"] == commit["tm_id"]
 
     assert num_zero_diff_commits / len(commits) < 0.1
+
+
+def test_repo_extractor_date_range():
+    start_date, end_date = (
+        date(2021, 1, 1),
+        date(2021, 10, 1),
+    )
+    extractor = git.GitRepoExtractor(
+        ".",
+        customer_id="test-cust-id",
+        source_id="test-source-id",
+        repo_tm_id=REPO_TM_ID,
+        forced_repo_name="test-repo",
+        use_repo_link_url_from_remote=True,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    commits = []
+    for type_, item in extractor(rev="master", fallback_rev="main"):
+        if type_ == git.GIT_COMMIT_TYPE:
+            commits.append(item)
+        elif type_ != git.GIT_REPO_TYPE:
+            pytest.fail(f"Unexpected item type: {type_}")
+
+    assert 50 < len(commits) < 150
+    assert all(
+        [
+            commit["committed_date"] >= int(start_date.strftime("%s"))
+            for commit in commits
+        ]
+    )
+    assert all(
+        [commit["committed_date"] < int(end_date.strftime("%s")) for commit in commits]
+    )
 
 
 def test_repo_extractor_different_dbs_same_results():

@@ -250,10 +250,10 @@ class GitRepoExtractor:
 
         return (
             self.start_date is None
-            or int(self.start_date.strftime("%s")) >= committed_date_epoch
+            or committed_date_epoch >= int(self.start_date.strftime("%s"))
         ) and (
             self.end_date is None
-            or int(self.end_date.strftime("%s")) < committed_date_epoch
+            or committed_date_epoch < int(self.end_date.strftime("%s"))
         )
 
     def extract_commits_and_history(

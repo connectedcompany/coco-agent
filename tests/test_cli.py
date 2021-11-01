@@ -1,14 +1,13 @@
 import os
 import re
 import tempfile
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from unittest import mock
 
 import coco_agent
 import pytest
 import srsly
 from click.testing import CliRunner
-from coco_agent import services
 from coco_agent.remote import transfer
 from coco_agent.remote.cli import cli, maybe_sleep
 from coco_agent.services import git
@@ -65,6 +64,48 @@ def test_git_extract():
         commits_file = [f for f in os.listdir(tmpdir) if "git_commits" in f][0]
         stored_commits = list(srsly.read_jsonl(os.path.join(tmpdir, commits_file)))
         assert len(stored_commits) > git.DEFAULT_GIT_COMMIT_WRITE_BATCH_SIZE
+
+
+def test_git_extract_date_range():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "extract",
+                "git-repo",
+                "--connector-id=test/git/test",
+                "--output-dir=" + tmpdir,
+                "--forced-repo-name=test-repo",
+                "--log-level=debug",
+                "--log-to-file",
+                "--start-date=2021-01-01",
+                "--end-date=tomorrow",
+                ".",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0, result.output
+
+        files = [f for f in os.listdir(tmpdir)]
+        assert len(files) == 3
+
+        commits_file = [f for f in os.listdir(tmpdir) if "git_commits" in f][0]
+        stored_commits = list(srsly.read_jsonl(os.path.join(tmpdir, commits_file)))
+        assert len(stored_commits) > 50
+        assert all(
+            [
+                commit["committed_date"] >= int(date(2021, 1, 1).strftime("%s"))
+                for commit in stored_commits
+            ]
+        )
+        assert all(
+            [
+                commit["committed_date"]
+                < int((date.today() + timedelta(days=1)).strftime("%s"))
+                for commit in stored_commits
+            ]
+        )
 
 
 def test_git_extract_repeatedly():
