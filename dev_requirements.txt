@@ -1,4 +1,5 @@
 black
+line_profiler
 pytest
 twine
 wheel

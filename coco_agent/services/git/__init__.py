@@ -1,3 +1,4 @@
+import atexit
 import logging
 import os
 import re
@@ -7,11 +8,18 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import gitdb
+import line_profiler
+import lizard
 import srsly
 
 import git
 
-from . import tm_id
+from .. import tm_id
+from . import content
+
+profile = line_profiler.LineProfiler()
+atexit.register(profile.print_stats)
+
 
 EXPORT_FILE_NAME_REGEX = re.compile(r"^(.+)__(.+)__(.+)__(.+)\.(.+)$")
 GIT_URL_SCHEMES = ("http", "https", "git")
@@ -19,7 +27,7 @@ GIT_SOURCE_TYPE = "git"
 GIT_COMMIT_TYPE = "git_commits"
 GIT_COMMIT_DIFF_TYPE = "git_commit_diffs"
 GIT_REPO_TYPE = "git_repos"
-LOG_HEARTBEAT_COMMIT_BATCH_SIZE = 1000
+LOG_HEARTBEAT_COMMIT_BATCH_SIZE = 500
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +56,9 @@ def check_repo(repo):
 def _diff_size(diff):
     """
     Computes the size of the diff by comparing the size of the blobs.
+
+    NOTE: that blob size isn't indicative of file size (e.g. compression),
+    and requires the blob to be examined too.
     """
     try:
         if diff.b_blob is None and diff.deleted_file:
@@ -194,14 +205,19 @@ class GitRepoExtractor:
 
         return tm_id.git_repo(self.customer_id, self.source_id, repo_name)
 
-    def load_commit_diffs(self, repo_tm_id, commit):
+    @profile
+    def load_commit_diffs(self, repo, repo_tm_id, commit_obj):
         """
         Source: https://bbengfort.github.io/snippets/2016/05/06/git-diff-extract.html
         This function returns a generator which iterates through all commits of
         the repository located in the given path for the given branch. It yields
         file diff information to show a timeseries of file changes.
         """
-        diffs = commit.parents[0].diff(commit) if commit.parents else commit.diff()
+        diffs = (
+            commit_obj.parents[0].diff(commit_obj)
+            if commit_obj.parents
+            else commit_obj.diff()
+        )
         diffs = {
             diff.a_path: diff
             for diff in diffs
@@ -210,7 +226,7 @@ class GitRepoExtractor:
 
         # The stats on the commit is a summary of all the changes for this
         # commit, we'll iterate through it to get the information we need.
-        for objpath, stats in commit.stats.files.items():
+        for objpath, stats in commit_obj.stats.files.items():
             diff = diffs.get(get_path(objpath))
             if diff is None:
                 log.debug("Couldn't find a diff for %s", get_path(objpath))
@@ -220,12 +236,34 @@ class GitRepoExtractor:
             size_delta = _diff_size(diff)
             type_ = _diff_type(diff)
 
+            is_binary = content.is_binary(repo, commit_obj.hexsha, diff.b_path)
+            if is_binary:
+                print(f"Binary file: {diff.b_path}")
+
+            # print(f"{commit_obj.hexsha} {type_} {diff.a_path} -> {diff.b_path}")
+            if type_ != "D":
+                ctnt = content.get_content(repo, commit_obj.hexsha, diff.b_path)
+                # code_stats = content.get_lines(
+                #     diff.b_path, source_code=ctnt, encoding="utf-8"
+                # )
+                # print(code_stats)
+
+                if not is_binary:
+                    res = lizard.analyze_file.analyze_source_code(diff.b_path, ctnt)
+                    # print(f"{diff.b_path} {res.__dict__}")
+                    # for f in res.function_list:
+                    #     print(f"    {f.__dict__}")
+            else:
+                log.debug(
+                    f"Skipping content for deletion: {commit_obj.hexsha} {type_} {diff.a_path} -> {diff.b_path}"
+                )
+
             stats.update(
                 {
-                    "tm_id": tm_id.git_commit_diff(commit.hexsha, objpath),
+                    "tm_id": tm_id.git_commit_diff(commit_obj.hexsha, objpath),
                     "sensor_id": self.sensor_id,
                     "repo_id": repo_tm_id,
-                    "commit_id": tm_id.git_commit(commit.hexsha),
+                    "commit_id": tm_id.git_commit(commit_obj.hexsha),
                     "a_path": diff.a_path,
                     "b_path": diff.b_path,
                     "a_object_id": tm_id.git_path(repo_tm_id, diff.a_path),
@@ -246,7 +284,7 @@ class GitRepoExtractor:
 
             try:
                 log.debug(f"Processing commit {commit_obj.hexsha}")
-                diffs = self.load_commit_diffs(repo_tm_id, commit_obj)
+                diffs = self.load_commit_diffs(repo, repo_tm_id, commit_obj)
 
                 commit = {
                     "tm_id": tm_id.git_commit(commit_obj.hexsha),
