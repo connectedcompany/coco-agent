@@ -30,7 +30,7 @@ config = {
         "srsly==2.4.1",
         "urllib3==1.26.6",
     ],
-    "python_requires": ">=3.6",
+    "python_requires": ">=3.7",
     "packages": find_packages(),
     "scripts": ["coco-agent"],
 }
