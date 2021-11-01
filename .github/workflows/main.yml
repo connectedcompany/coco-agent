@@ -16,7 +16,7 @@ jobs:
       - uses: snyk/actions/setup@master
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.6
+          python-version: 3.7
 
       - name: Setup environment
         run: |
@@ -31,7 +31,7 @@ jobs:
           source venv/bin/activate
           pip install -U pip # without latest pip, grpcio, cryptography et al. tage ages
           pip install -r dev_requirements.txt
-          pip install --no-cache-dir -r requirements.txt
+          pip install -r requirements.txt
 
       - name: Unit tests
         run: |
