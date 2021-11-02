@@ -128,7 +128,12 @@ def get_repo_name_from_remote(repo):
 
 
 def repo_commits_iter(repo, rev, fallback_rev=None, reverse=True):
-    """:param reverse: reverse commit order, passed by gitpython to git-rev-list reverse=False means newest to oldest"""
+    """
+    :param reverse:  reverse commit order, passed by gitpython to git-rev-list;
+                     reverse=False means newest-to-oldest. We default to oldest-
+                     to-newest, to facilitate contiguous ingestion of new data
+    """
+
     try:
         for commit in repo.iter_commits(rev, reverse=reverse):
             yield commit
