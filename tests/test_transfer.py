@@ -81,7 +81,8 @@ def test_upload_dir_to_gcs_subtree(mock_gcs):
                     skip_bucket_check=True,
                 )
                 for source_file_path in source_file_paths
-            ]
+            ],
+            any_order=True # otherwise fails on gh actions 
         )
 
 
