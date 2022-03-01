@@ -27,7 +27,7 @@ config = {
         "google-cloud-logging==2.6.0",
         "google-cloud-storage==2.1.0",
         "pybase62==0.4.3",
-        "python-dateutil==2.8.2",
+        "python-dateutil>=2.8.2",
         "srsly==2.4.1",
         "urllib3==1.26.6",
     ],
