@@ -3,7 +3,7 @@ A set of tools and utilities for extracting and shipping raw data to ConnectedCo
 ## Pre-requisites
 
 - python 3.6+ (`python3 --version` to check)
-- CC connector ID - this is a string provided by CC, strucured like <customer-id>/<source-type>/<source-id>
+- CC connector ID - this is a string provided by CC, strucured like `customer-id>/<source-type>/<source-id>`
 - optionally, a credentials file, to push data extracts and / or logs to CC
 
 ## Installation
@@ -55,14 +55,15 @@ coco-agent upload data --credentials-file=<credentials file path> <connector id>
 where
 
 - `credentials file path` is the location of the upload credentials JSON file, provided by CC
-- `connector id` is, as before the connector ID for the data source
-- `directory` is the directory where data was previously extracted
+- `connector id` is, as before, the connector ID for the data source
+- `directory` is the directory where data was previously extracted (`./out` by default)
 
 ---
 
 ## Supported options
 
-`coco-agent` will display supported commands and options.
+Invoking `coco-agent` without arguments will display supported commands and options.
+
 `coco-agent version` will display the current version.
 
-In the same way, description and options for each sub-command can be seen by passing the `--help` argument - e.g. `./coco-agent extract git-repo --help`.
+In the same way, description and options for each sub-command can be seen by passing the `--help` argument - e.g. `coco-agent extract git-repo --help`.
