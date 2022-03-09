@@ -14,6 +14,7 @@ LOG_FORMAT = (
     "%(asctime)s.%(msecs)03d %(filename)s:%(lineno)d %(levelname)s: %(message)s"
 )
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
 
 # pre-python 3.8 workaround for catching in-thread unhandled exceptions - 3.8 has threading.excepthook()
 def install_thread_excepthook():
@@ -63,17 +64,15 @@ def set_up_cloud_logging(
 
 
 def apply_log_config(
-    log_level_str,
+    log_level_str=logging.INFO,
     log_to_file=True,
     log_file_name=DEFAULT_LOG_FILE_NAME,
     log_to_cloud=False,
     credentials_file_path=None,
     module=coco_agent.__name__,
 ):
-    if not log_level_str:
-        return
-
     log_level_str = log_level_str.strip().upper()
+
     if not hasattr(logging, log_level_str):
         raise ValueError(f"Unknown log level: {log_level_str}")
 
@@ -96,7 +95,5 @@ def apply_log_config(
     if log_to_cloud:
         set_up_cloud_logging(credentials_file_path, module)
 
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
-
-    # remove noise
-    logging.getLogger("google.cloud").setLevel(logging.ERROR)
+    # remove noise - this failed for google logging fork() noise
+    # logging.getLogger("google.cloud").setLevel(logging.ERROR)

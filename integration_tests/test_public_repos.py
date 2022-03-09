@@ -21,6 +21,27 @@ class StringMatches(str):
         return hash(str(self))
 
 
+def test_pick_up_early_errors():
+    connector_id = "test/git/test"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "extract",
+            "git-repo",
+            "--credentials-file=NONEXISTENT",
+            f"--connector-id={connector_id}",
+            "--log-to-cloud",
+            "--upload",
+            ".",
+        ],
+        catch_exceptions=True,
+    )
+    assert result.exit_code > 0
+    assert "No such file or directory" in str(result)
+
+
 @mark.parametrize(
     "repo_url, repo_name, branch_name, use_non_native_repo_db, min_commits",
     [
