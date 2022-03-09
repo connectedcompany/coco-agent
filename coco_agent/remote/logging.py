@@ -11,7 +11,8 @@ from google.oauth2.service_account import Credentials
 DEFAULT_LOG_FILE_NAME = "coco-agent"
 DEFAULT_CLOUD_LOGGING_HANDLER_NAME = "coco-agent"
 LOG_FORMAT = (
-    "%(asctime)s.%(msecs)03d {%(filename)s:%(lineno)d} %(levelname)s: %(message)s"
+    # TODO: revert pathname to filename once done with noisy cloud logging output diagnosis
+    "%(asctime)s.%(msecs)03d %(pathname)s:%(lineno)d %(levelname)s: %(message)s"
 )
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -97,3 +98,6 @@ def apply_log_config(
         set_up_cloud_logging(credentials_file_path, module)
 
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+
+    # remove noise
+    logging.getLogger("google.cloud.logging").setLevel(logging.ERROR)
