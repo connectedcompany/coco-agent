@@ -94,6 +94,3 @@ def apply_log_config(
 
     if log_to_cloud:
         set_up_cloud_logging(credentials_file_path, module)
-
-    # remove noise - this failed for google logging fork() noise
-    # logging.getLogger("google.cloud").setLevel(logging.ERROR)
