@@ -38,6 +38,7 @@ def split_connector_id(connector_id):
     if not connector_id:
         raise ValueError("Connector id is required")
 
+    connector_id = connector_id.strip().lower()
     matched = re.match(r"^([\w-]+)/([\w-]+)/([\w-]+)$", connector_id)
     if not matched or not len(matched.groups()) == 3:
         raise ValueError(
