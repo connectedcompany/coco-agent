@@ -1,4 +1,5 @@
 import pytest
+
 from coco_agent.services import tm_id
 
 
@@ -8,10 +9,12 @@ def test_encode():
     assert res == "13mw4kpp2xZTSK"
 
 
-def test_sensor_id():
-    res = tm_id.sensor("cust-id", "source-type", "source-id")
+def test_connector_id():
+    from coco_agent.services import tm_id as tm_id2
 
-    assert res == "sen-" + tm_id.encode("cust-id::source-type::source-id")
+    res = tm_id2.connector("cust-id", "source-type", "source-id")
+
+    assert res == "con-" + tm_id.encode("cust-id::source-type::source-id")
 
 
 @pytest.mark.parametrize(

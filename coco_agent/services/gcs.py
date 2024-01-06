@@ -70,9 +70,9 @@ class GCSClient:
     def _file_path(self, dt, file_name, extension):
         return f"{dt.year}/{dt.month}/{dt.day}/{file_name}.{extension}"
 
-    def _bucket_name(self, sensor_id, name):
+    def _bucket_name(self, connector_id, name):
         # TODO: remove tm_environment
-        return f'{self.param("tm_environment")}-{sensor_id}-{name}'
+        return f'{self.param("tm_environment")}-{connector_id}-{name}'
 
     def _write_string(self, bucket_name, file_name, data):
         log.info(f"Storing data in {bucket_name}:{file_name}")

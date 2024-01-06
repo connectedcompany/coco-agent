@@ -1,6 +1,5 @@
 import hashlib
 import re
-from datetime import date
 
 import base62
 
@@ -9,7 +8,7 @@ IDENTIFIER_LENGTH_BITS = 80
 HASH_LENGTH_BITS = 256
 SEP = "-"
 
-SENSOR_ID_PREFIX = "sen"
+CONNECTOR_ID_PREFIX = "con"
 GITHUB_REPO_ID_PREFIX = "ghr"
 GITHUB_LABEL_ID_PREFIX = "ghl"
 GITHUB_ISSUE_ID_PREFIX = "ghi"
@@ -52,9 +51,9 @@ def split_connector_id(connector_id):
     return customer_id, source_type, source_id
 
 
-def sensor(customer_id, source_type, source_id):
+def connector(customer_id, source_type, source_id):
     id_ = f"{customer_id}::{source_type}::{source_id}"
-    return f"{SENSOR_ID_PREFIX}{SEP}{encode(id_)}"
+    return f"{CONNECTOR_ID_PREFIX}{SEP}{encode(id_)}"
 
 
 def git_commit(hexsha: str):

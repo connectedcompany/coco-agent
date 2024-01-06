@@ -6,10 +6,9 @@ import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
+import git
 import gitdb
 import srsly
-
-import git
 
 from . import tm_id
 
@@ -161,9 +160,8 @@ class GitRepoExtractor:
     def __init__(
         self,
         clone_url_or_path,
-        sensor=None,
-        customer_id=None,
-        source_id=None,
+        customer_id,
+        source_id,
         repo_tm_id=None,
         forced_repo_name=None,
         autogenerate_repo_id=False,
@@ -174,20 +172,12 @@ class GitRepoExtractor:
         end_date=None,
     ) -> None:
         self.clone_url_or_path = clone_url_or_path
-        if not sensor and (not customer_id or not source_id):
-            raise ValueError(
-                "Must either provide a sensor, or both customer and source ids"
-            )
         if not repo_tm_id and not autogenerate_repo_id:
             raise ValueError(f"No repo id given or auto-gen requested")
 
-        self.customer_id = sensor.customer_id if sensor else customer_id
-        self.source_id = sensor.source_id if sensor else source_id
-        self.sensor_id = (
-            sensor.tm_id
-            if sensor
-            else tm_id.sensor(customer_id, GIT_SOURCE_TYPE, source_id)
-        )
+        self.customer_id = customer_id
+        self.source_id = source_id
+        self.connector_id = tm_id.connector(customer_id, GIT_SOURCE_TYPE, source_id)
 
         self.repo_tm_id = repo_tm_id
         self.forced_repo_name = forced_repo_name
@@ -233,7 +223,7 @@ class GitRepoExtractor:
             stats.update(
                 {
                     "tm_id": tm_id.git_commit_diff(commit.hexsha, objpath),
-                    "sensor_id": self.sensor_id,
+                    "connector_id": self.connector_id,
                     "repo_id": repo_tm_id,
                     "commit_id": tm_id.git_commit(commit.hexsha),
                     "a_path": diff.a_path,
@@ -278,7 +268,7 @@ class GitRepoExtractor:
 
                 commit = {
                     "tm_id": tm_id.git_commit(commit_obj.hexsha),
-                    "sensor_id": self.sensor_id,
+                    "connector_id": self.connector_id,
                     "repo_id": repo_tm_id,
                     "diffs": list(diffs),
                     "author.name": commit_obj.author.name,
@@ -341,7 +331,7 @@ class GitRepoExtractor:
                 GIT_REPO_TYPE,
                 {
                     "tm_id": repo_tm_id,
-                    "sensor_id": self.sensor_id,
+                    "connector_id": self.connector_id,
                     "name": repo_name,
                     "url": repo_link_url,
                 },
