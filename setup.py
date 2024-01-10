@@ -23,7 +23,7 @@ config = {
     #'author_email': 'My email.',
     "install_requires": [
         "click>=8.1.7",
-        "gitpython==3.1.40",
+        "gitpython==3.1.41",
         "google-cloud-logging>=3.9.0",
         "google-cloud-storage==2.14.0",
         "pybase62==1.0.0",
